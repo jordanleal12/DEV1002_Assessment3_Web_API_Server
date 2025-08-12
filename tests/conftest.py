@@ -1,9 +1,17 @@
 """Create pytest fixtures that set up flask application, database, and test client,
 passing the output of the functions to the test functions as reusable components."""
 
-import pytest
-from src.main import create_app
-from src.extensions import db
+import sys  # Used to add src to path directory python can access
+import os  # Used to convert relative path to src to absolute path
+import pytest  # Used for pytest fixtures
+
+sys.path.insert(  # Allows imports from src folder
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+)
+
+from main import create_app
+from extensions import db
+from models import Address
 
 
 @pytest.fixture(scope="function")  # scope='function' ensures fixture is created once
@@ -35,3 +43,33 @@ def db_session(app):
     with app.app_context():
         yield db.session  # Passes the database session to test functions
         db.session.rollback()  # Undo any changes to the database after each test
+
+
+# Pytest fixtures to pass pre-filled model instance or dictionary instance to tests
+# ==================================================================================================
+
+
+@pytest.fixture
+def sample_address(db_session):
+    """Create instance of address as a fixture that can be passed to tests."""
+
+    address = Address(  # Pre-filled address instance
+        country_code="US", state_code="CA", street="123 Test St", postcode="12345"
+    )
+    db_session.add(address)
+    db_session.commit()
+    return address
+
+
+@pytest.fixture
+def address_data():
+    """Create dictionary for address that can be passed to tests."""
+
+    address_dict = {  # Pre-filled address dictionary
+        "country_code": "US",
+        "state_code": "CA",
+        "city": "San Francisco",
+        "street": "123 Test St",
+        "postcode": "12345",
+    }
+    return address_dict
