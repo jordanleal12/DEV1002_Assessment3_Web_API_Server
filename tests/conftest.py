@@ -8,10 +8,10 @@ import pytest  # Used for pytest fixtures
 sys.path.insert(  # Allows imports from src folder
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 )
-
-from main import create_app
-from extensions import db
-from models import Address
+# Below absolute path declaration so imports happen using new path
+from main import create_app  # Used to setup app instance with test configuration
+from extensions import db  # To link SQLAlchemy
+from models import Address  # Used for pre-filled address instance fixture
 
 
 @pytest.fixture(scope="function")  # scope='function' ensures fixture is created once

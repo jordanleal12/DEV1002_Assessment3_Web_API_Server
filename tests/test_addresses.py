@@ -32,7 +32,7 @@ def test_address_creation(db_session):
 
 
 # @parametrize decorator runs the test for each set of parameters provided as a list of tuples
-# Validation check in model gives value error for ISO codes instead, so we define expected errors
+# Validation check in model gives ValueError when value is None, so we expect ValueError
 @pytest.mark.parametrize(
     "field, value, expected_error",
     [
