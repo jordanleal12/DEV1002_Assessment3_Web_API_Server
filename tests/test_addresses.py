@@ -4,8 +4,6 @@ Using TDD, we will implement the tests first and then the corresponding code."""
 import pytest  # Required for @parametrize decorator
 from models import Address  # Address model must be created to pass tests
 
-ONE_OH_ONE_CHARS = "a" * 101  # Constant for checking enforcement of max string length
-
 # Test model level validation
 # ==================================================================================================
 
@@ -54,24 +52,23 @@ def test_required_fields(db_session, field, value, expected_error, address_data)
         # and replace each field with None one by one as the test iterates
         address = Address(**address_data)
         db_session.add(address)
-        db_session.commit()
 
 
 # Create parametrize decorated function to allow iteration of test cases
 @pytest.mark.parametrize(
     "field, value",
     [
-        ("country_code", "USA"),
-        ("country_code", "U"),
-        ("state_code", "Perth"),
-        ("state_code", "p"),
-        ("city", ONE_OH_ONE_CHARS),
-        ("street", ONE_OH_ONE_CHARS),
-        ("postcode", ONE_OH_ONE_CHARS),
+        ("country_code", "USA"),  # Exceeds max length (2)
+        ("country_code", "U"),  # Under min length (2)
+        ("state_code", "Perth"),  # Exceeds max length (3)
+        ("state_code", "p"),  # Under min length (2)
+        ("city", ("a" * 51)),  # Exceeds max length (50)
+        ("street", ("a" * 101)),  # Exceeds max length (100)
+        ("postcode", ("a" * 11)),  # Exceeds max length (10)
     ],
 )
-def test_iso_code_length(db_session, field, value, address_data):
-    """Test that country_code string length is enforced."""
+def test_column_length(db_session, field, value, address_data):
+    """Test that max column character length is enforced by model."""
 
     # address_data is a dict containing address fields defined as a fixture in conftest.py
     # Replace each field with each tuple value per iteration

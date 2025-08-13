@@ -21,6 +21,7 @@ class Address(db.Model):
     def validate_country_code(self, key, value) -> str:
         """Validates country_code is 2 alphabetical characters long for IS0 3166 country codes."""
 
+        # Return ValueError if null, not string or len != 2, else return uppercase value
         if not isinstance(value, str) or len(value) != 2:
             raise ValueError("ISO 3166 country code must be 2 alphabetical characters")
         return value.upper()  # Convert to uppercase for consistency
@@ -29,16 +30,31 @@ class Address(db.Model):
     def validate_state_code(self, key, value) -> str:
         """Validates state_code is 2-3 alphabetical characters long for ISO 3166-2 state codes."""
 
+        # Return ValueError if null, not string or len not 2 or 3, else return uppercase value
         if not isinstance(value, str) or len(value) not in (2, 3):
             raise ValueError(
                 "ISO 3166-2 subdivision code must be 2 or 3 alphabetical characters"
             )
         return value.upper()  # Convert to uppercase for consistency
 
+    @validates("city")
+    def validate_city(self, key, value) -> str | None:
+        """Validates is string and max character length enforced unless null"""
+
+        # Return None if null, ValueError if not string or len > 50, else return titlecase value
+        if value:
+            if not isinstance(value, str) or len(value) > 50:
+                raise ValueError(
+                    "If City is not null, must be a string of no more than 50 characters"
+                )
+            return value.title()
+        return None
+
     @validates("street")
     def validate_street(self, key, value) -> str:
         """Validates is string, is not null & max character length is enforced"""
 
+        # Return ValueError if null, not string or len > 100, else return titlecase value
         if not isinstance(value, str) or len(value) > 100:
             raise ValueError("Street must be a string of no more than 100 characters")
         return value.title()
@@ -47,15 +63,17 @@ class Address(db.Model):
     def validate_postcode(self, key, value):
         """Validates is string, is not null & max character length is enforced"""
 
+        # Return ValueError if null, not string or len > 10, else return titlecase value
         if not isinstance(value, str) or len(value) > 10:
             raise ValueError("Postcode must be a string of no more than 10 characters")
         return value
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """String representation of Address instances useful for debugging."""
 
         # Shorten street output if too long
         shortened_street = (
             self.street[:25] + "..." if len(self.street) > 25 else self.street
         )
+        # Return formatted string with street, city and country code
         return f"<Address {shortened_street}, {self.city}, {self.country_code}>"
