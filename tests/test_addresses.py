@@ -2,7 +2,9 @@
 Using TDD, we will implement the tests first and then the corresponding code."""
 
 import pytest  # Required for @parametrize decorator
-from models import Address  # Address model must be created to pass tests
+from marshmallow import ValidationError  # Raised when validation fails on schema
+from models import Address  # Used for model validation
+from schemas import address_schema  # Must be written to pass schema tests
 
 # Test model level validation
 # ==================================================================================================
@@ -30,31 +32,33 @@ def test_address_creation(db_session):
 
 
 # @parametrize decorator runs the test for each set of parameters provided as a list of tuples
-# Validation check in model gives ValueError when value is None, so we expect ValueError
+# Validation check in model gives ValueError when value is None or empty string
 @pytest.mark.parametrize(
-    "field, value, expected_error",
+    "field, value",
     [
-        ("country_code", None, ValueError),
-        ("country_code", "", ValueError),
-        ("state_code", None, ValueError),
-        ("state_code", "", ValueError),
-        ("street", None, ValueError),
-        ("street", "", ValueError),
-        ("postcode", None, ValueError),
-        ("postcode", "", ValueError),
+        ("country_code", None),
+        ("country_code", ""),
+        ("state_code", None),
+        ("state_code", ""),
+        ("street", None),
+        ("street", ""),
+        ("postcode", None),
+        ("postcode", ""),
     ],
 )
-def test_required_fields(db_session, field, value, expected_error, address_data):
+def test_model_required_fields(
+    db_session, field, value, expected_error, address_instance
+) -> None:
     """Test that required fields are enforced in the Address model."""
 
     # address_data is a dict containing address fields defined as a fixture in conftest.py
-    address_data[field] = value  # Replaces each field with None as the test iterates
+    address_instance[field] = value  # Replaces each field as the test iterates
 
     # Checks that an error is raised when a required field is None
     with pytest.raises(expected_error):
         # Uses kwargs to turn address_data dict into Address model fields
-        # and replace each field with None one by one as the test iterates
-        address = Address(**address_data)
+        # and replace each field with None or empty string one by one as the test iterates
+        address = Address(**address_instance)
         db_session.add(address)
 
 
@@ -71,15 +75,96 @@ def test_required_fields(db_session, field, value, expected_error, address_data)
         ("postcode", ("a" * 11)),  # Exceeds max length (10)
     ],
 )
-def test_column_length(db_session, field, value, address_data):
+def test_model_column_length(db_session, field, value, address_instance):
     """Test that max column character length is enforced by model."""
 
     # address_data is a dict containing address fields defined as a fixture in conftest.py
     # Replace each field with each tuple value per iteration
-    address_data[field] = value
+    address_instance[field] = value
     # Check that the expected error defined in parametrize is raised
     with pytest.raises(ValueError):
-        address = Address(
-            **address_data
-        )  # Uses kwargs to turn address_data into Address instance per iteration
+        # Uses kwargs to pass updated address_instance through model validation
+        address = Address(**address_instance)
         db_session.add(address)
+
+
+# Test schema level validation
+# ==================================================================================================
+
+
+def test_schema_load(address_json: dict[str, str]) -> None:
+    """
+    Test deserialization of json data into python object using schema.
+    'load_instance=True' is set in schema, so data will be deserialized.
+    """
+    # address_schema must be created to pass
+    data = address_schema.load(address_json)  # Deserializes json into python object
+    # Checks if a python object has an attribute, so will only pass if deserialized
+    assert hasattr(data, "country_code")
+
+
+def test_schema_dump(address_instance: Address) -> None:
+    """Test serialization of python object into json data using schema."""
+
+    data = address_schema.dump(address_instance)  # Serialize object into dictionary
+
+    assert isinstance(data, dict)  # Check object was converted to dictionary
+    assert data["country_code"] == "US"  # Check dict key has expected value
+
+
+def test_missing_schema_key(address_json: dict[str, str]) -> None:
+    """Test deserialization while missing one key: value pair per iteration."""
+
+    for key in address_json:  # Iterates once per key
+        data = address_json.copy()  # Create fresh copy to not effect address_json
+        del data[key]  # Delete subsequent key per iteration
+
+        with pytest.raises(ValidationError):  # Check error is raised per missing key
+            address_schema.load(data)
+
+
+# Allow iteration of test cases, replacing each value with None or empty string per test
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("country_code", None),
+        ("country_code", ""),
+        ("state_code", None),
+        ("state_code", ""),
+        ("street", None),
+        ("street", ""),
+        ("postcode", None),
+        ("postcode", ""),
+    ],
+)
+def test_schema_required_fields(address_json: dict[str, str], field, value):
+    """Test schema enforces Null and empty string values for required fields."""
+
+    data = address_json  # Fresh dictionary for each iteration
+    data[field] = value  # Replace each field with invalid data each iteration
+
+    with pytest.raises(ValidationError):  # Schema should raise error for bad data
+        address_schema.load(address_json)
+
+
+# Allow iteration of test cases, replacing each value with invalid length string per test
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("country_code", "USA"),  # Exceeds max length (2)
+        ("country_code", "U"),  # Under min length (2)
+        ("state_code", "Perth"),  # Exceeds max length (3)
+        ("state_code", "p"),  # Under min length (2)
+        ("city", ("a" * 51)),  # Exceeds max length (50)
+        ("street", ("a" * 101)),  # Exceeds max length (100)
+        ("postcode", ("a" * 11)),  # Exceeds max length (10)
+    ],
+)
+def test_schema_column_length(address_json: dict[str, str], field, value):
+    """Test schema enforces min and max column length."""
+
+    data = address_json  # Fresh dictionary for each iteration
+    data[field] = value  # Replace each field with invalid data each iteration
+
+    with pytest.raises(ValidationError):  # Schema should raise error for bad data
+        address_schema.load(address_json)

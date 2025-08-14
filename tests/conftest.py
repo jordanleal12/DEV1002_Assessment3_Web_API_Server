@@ -50,7 +50,7 @@ def db_session(app):
 
 
 @pytest.fixture
-def sample_address(db_session):
+def address_instance(db_session):
     """Create instance of address as a fixture that can be passed to tests."""
 
     address = Address(  # Pre-filled address instance
@@ -62,7 +62,7 @@ def sample_address(db_session):
 
 
 @pytest.fixture
-def address_data():
+def address_json():
     """Create dictionary for address that can be passed to tests."""
 
     address_dict = {  # Pre-filled address dictionary
