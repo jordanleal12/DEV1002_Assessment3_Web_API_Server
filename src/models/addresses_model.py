@@ -1,6 +1,8 @@
 """Model for creating Address instances with model level validation."""
 
-from sqlalchemy.orm import validates  # Provides model level validation
+from typing import Optional  # Allows use of Optional type hint
+from sqlalchemy import String  # ,ForeignKey
+from sqlalchemy.orm import mapped_column, Mapped, validates  # ,backref, relationship
 from extensions import db  # Allows use of SQLAlchemy in model
 from utils import checks_input  # Used with validates decorators to validate input
 
@@ -9,12 +11,12 @@ class Address(db.Model):
     """Model for storing addresses of customers."""
 
     __tablename__ = "addresses"
-    id = db.Column(db.Integer, primary_key=True)
-    country_code = db.Column(db.String(2), nullable=False)  # Enforces max length of 2
-    state_code = db.Column(db.String(3), nullable=False)  # Enforces max length of 3
-    city = db.Column(db.String(50))  # Optional as not all addresses have city
-    street = db.Column(db.String(100), nullable=False)
-    postcode = db.Column(db.String(10), nullable=False)  # Max length of postcodes is 10
+    id: Mapped[int] = mapped_column(primary_key=True)  # Primary Key column
+    country_code: Mapped[str] = mapped_column(String(2))  # Enforces max length of 2
+    state_code: Mapped[str] = mapped_column(String(3))  # Enforces max length of 3
+    city: Mapped[Optional[str]] = mapped_column(String(50))  # Optional allows nullable
+    street: Mapped[str] = mapped_column(String(100))
+    postcode: Mapped[str] = mapped_column(String(10))  # Max length of postcodes is 10
 
     @validates("country_code")
     def validate_country_code(self, key, value) -> str | None:
