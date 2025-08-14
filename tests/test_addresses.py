@@ -46,20 +46,13 @@ def test_address_creation(db_session):
         ("postcode", ""),
     ],
 )
-def test_model_required_fields(
-    db_session, field, value, expected_error, address_instance
-) -> None:
+def test_model_required_fields(field, value, address_instance) -> None:
     """Test that required fields are enforced in the Address model."""
 
-    # address_data is a dict containing address fields defined as a fixture in conftest.py
-    address_instance[field] = value  # Replaces each field as the test iterates
-
-    # Checks that an error is raised when a required field is None
-    with pytest.raises(expected_error):
-        # Uses kwargs to turn address_data dict into Address model fields
-        # and replace each field with None or empty string one by one as the test iterates
-        address = Address(**address_instance)
-        db_session.add(address)
+    # address_instance is a pytest fixture containing a pre-made address instance
+    with pytest.raises(ValueError):  # Checks error is raised with wrong input
+        setattr(address_instance, field, value)  # Replace address_instance fields with
+        # invalid data per each iteration
 
 
 # Create parametrize decorated function to allow iteration of test cases
@@ -75,17 +68,13 @@ def test_model_required_fields(
         ("postcode", ("a" * 11)),  # Exceeds max length (10)
     ],
 )
-def test_model_column_length(db_session, field, value, address_instance):
+def test_model_column_length(field, value, address_instance):
     """Test that max column character length is enforced by model."""
 
-    # address_data is a dict containing address fields defined as a fixture in conftest.py
-    # Replace each field with each tuple value per iteration
-    address_instance[field] = value
-    # Check that the expected error defined in parametrize is raised
-    with pytest.raises(ValueError):
-        # Uses kwargs to pass updated address_instance through model validation
-        address = Address(**address_instance)
-        db_session.add(address)
+    # address_instance is a pytest fixture containing a pre-made address instance
+    with pytest.raises(ValueError):  # Checks error is raised with wrong input
+        setattr(address_instance, field, value)  # Replace address_instance fields with
+        # invalid data per each iteration
 
 
 # Test schema level validation
