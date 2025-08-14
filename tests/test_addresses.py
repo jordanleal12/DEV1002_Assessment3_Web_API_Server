@@ -35,9 +35,13 @@ def test_address_creation(db_session):
     "field, value, expected_error",
     [
         ("country_code", None, ValueError),
+        ("country_code", "", ValueError),
         ("state_code", None, ValueError),
+        ("state_code", "", ValueError),
         ("street", None, ValueError),
+        ("street", "", ValueError),
         ("postcode", None, ValueError),
+        ("postcode", "", ValueError),
     ],
 )
 def test_required_fields(db_session, field, value, expected_error, address_data):
