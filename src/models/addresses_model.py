@@ -1,9 +1,8 @@
 """Model for creating Address instances with model level validation."""
 
-from sqlalchemy.orm import (
-    validates,
-)  # @validates decorator provides model level validation
+from sqlalchemy.orm import validates  # Provides model level validation
 from extensions import db  # Allows use of SQLAlchemy in model
+from utils import checks_input  # Used with validates decorators to validate input
 
 
 class Address(db.Model):
@@ -18,57 +17,55 @@ class Address(db.Model):
     postcode = db.Column(db.String(10), nullable=False)  # Max length of postcodes is 10
 
     @validates("country_code")
-    def validate_country_code(self, key, value) -> str:
+    def validate_country_code(self, key, value) -> str | None:
         """Validates country_code is 2 alphabetical characters long for IS0 3166 country codes."""
 
-        # Return ValueError if null, not string or len != 2, else return uppercase value
-        if not isinstance(value, str) or len(value) != 2:
-            raise ValueError("ISO 3166 country code must be 2 alphabetical characters")
+        # Passes column name, value and model constraints to checks_input function
+        value = checks_input(value, "country_code", str, min_len=2, max_len=2)
+        if not value.isalpha():  # Raises ValueError if not alphabetical letters
+            raise ValueError("country_code must contain alphabetical letters only")
         return value.upper()  # Convert to uppercase for consistency
 
     @validates("state_code")
-    def validate_state_code(self, key, value) -> str:
+    def validate_state_code(self, key, value) -> str | None:
         """Validates state_code is 2-3 alphabetical characters long for ISO 3166-2 state codes."""
 
-        # Return ValueError if null, not string or len not 2 or 3, else return uppercase value
-        if not isinstance(value, str) or len(value) not in (2, 3):
-            raise ValueError(
-                "ISO 3166-2 subdivision code must be 2 or 3 alphabetical characters"
-            )
+        # Passes column name, value and model constraints to checks_input function
+        value = checks_input(value, "state_code", str, min_len=2, max_len=3)
+        if not value.isalpha():  # Raises ValueError if not alphabetical letters
+            raise ValueError("street_code must contain alphabetical letters only")
         return value.upper()  # Convert to uppercase for consistency
 
     @validates("city")
     def validate_city(self, key, value) -> str | None:
         """Validates is string and max character length enforced unless null"""
 
-        # Return None if null, ValueError if not string or len > 50, else return titlecase value
-        if value:
-            if not isinstance(value, str) or len(value) > 50:
-                raise ValueError(
-                    "If City is not null, must be a string of no more than 50 characters"
-                )
-            return value.title()
-        return None
+        # Passes column name, value and model constraints to checks_input function
+        value = checks_input(value, "city", required=False, max_len=50)
+        return value.title()  # Convert to titlecase for consistency
 
     @validates("street")
-    def validate_street(self, key, value) -> str:
+    def validate_street(self, key, value) -> str | None:
         """Validates is string, is not null & max character length is enforced"""
 
-        # Return ValueError if null, not string or len > 100, else return titlecase value
-        if not isinstance(value, str) or len(value) > 100:
-            raise ValueError("Street must be a string of no more than 100 characters")
-        return value.title()
+        # Passes column name, value and model constraints to checks_input function
+        value = checks_input(value, "street", str, max_len=100)
+        return value.title()  # Convert to titlecase for consistency
 
     @validates("postcode")
-    def validate_postcode(self, key, value):
+    def validate_postcode(self, key, value) -> str | None:
         """Validates is string, is not null & max character length is enforced"""
 
-        # Return ValueError if null, not string or len > 10, else return titlecase value
-        if not isinstance(value, str) or len(value) > 10:
-            raise ValueError("Postcode must be a string of no more than 10 characters")
-        return value
+        # Passes column name, value and model constraints to checks_input function
+        value = checks_input(value, "postcode", str, min_len=2, max_len=10)
+        value = value.replace("-", "").replace(" ", "")
+        if not value.isalnum():
+            raise ValueError(
+                "postcode may contain only alphanumeric, whitespace or hyphen characters"
+            )
+        return value.upper()  # Convert to alphanumeric only uppercase for consistency
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str | None:
         """String representation of Address instances useful for debugging."""
 
         # Shorten street output if too long
