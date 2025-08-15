@@ -54,7 +54,11 @@ def address_instance(db_session):
     """Create instance of address as a fixture that can be passed to tests."""
 
     address = Address(  # Pre-filled address instance
-        country_code="US", state_code="CA", street="123 Test St", postcode="12345"
+        country_code="US",
+        state_code="CA",
+        city="San Francisco",
+        street="123 Test St",
+        postcode="12345",
     )
     db_session.add(address)
     db_session.commit()

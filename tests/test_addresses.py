@@ -26,9 +26,7 @@ def test_address_creation(db_session):
     db_session.commit()
 
     assert address.id is not None  # Test address instance has been created in database
-    assert (
-        db_session.get(Address, 1).street == "123 Test St"
-    )  # Check values saved correctly
+    assert db_session.get(Address, 1).street == "123 Test St"  # Check values in db
 
 
 # @parametrize decorator runs the test for each set of parameters provided as a list of tuples
@@ -83,13 +81,12 @@ def test_model_column_length(field, value, address_instance):
 
 def test_schema_load(address_json: dict[str, str]) -> None:
     """
-    Test deserialization of json data into python object using schema.
-    'load_instance=True' is set in schema, so data will be deserialized.
+    Test conversion of json data into python dict using schema.
+    'load_instance=False' is set in schema, so data will not be deserialized.
     """
-    # address_schema must be created to pass
-    data = address_schema.load(address_json)  # Deserializes json into python object
-    # Checks if a python object has an attribute, so will only pass if deserialized
-    assert hasattr(data, "country_code")
+
+    data = address_schema.load(address_json)  # Load json into dictionary
+    assert data["country_code"] == "US"  # Check expected data in field
 
 
 def test_schema_dump(address_instance: Address) -> None:
@@ -101,10 +98,14 @@ def test_schema_dump(address_instance: Address) -> None:
     assert data["country_code"] == "US"  # Check dict key has expected value
 
 
+# Ensures only required keys are deleted in below test
+REQUIRED_KEYS = ["country_code", "state_code", "street", "postcode"]
+
+
 def test_missing_schema_key(address_json: dict[str, str]) -> None:
     """Test deserialization while missing one key: value pair per iteration."""
 
-    for key in address_json:  # Iterates once per key
+    for key in REQUIRED_KEYS:  # Iterates once per key
         data = address_json.copy()  # Create fresh copy to not effect address_json
         del data[key]  # Delete subsequent key per iteration
 

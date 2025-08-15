@@ -1,8 +1,14 @@
 """Schema for Address using Marshmallow"""
 
-from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
-from models import Address
-from extensions import db
+from typing import Any  # Used for type hints
+from marshmallow import pre_load  # Used for pre_load hook to strip data
+from marshmallow.validate import Length  # Used to validate length in auto_field
+from marshmallow_sqlalchemy import (
+    SQLAlchemyAutoSchema,  # Auto Schema automatically generates fields based on model
+    auto_field,  # Automatically infers data type from model and allows marshmallow validation
+)
+from models import Address  # Addresses model
+from extensions import db  # SQLAlchemy instance
 
 
 class AddressSchema(SQLAlchemyAutoSchema):
@@ -12,11 +18,57 @@ class AddressSchema(SQLAlchemyAutoSchema):
         """Sets metadata and controls behavior of the schema"""
 
         model = Address
-        load_instance = True  # Automatically converts json data to python object
+        load_instance = False  # Prevent automatic deserialization, which can trigger
+        # Model level validation and skip schema validation
         sqla_session = db.session  # Links SQLAlchemy session to the schema, allowing it
         # to validate and load objects from foreign key/relationships when deserializing
 
         # Relationships to be defined later when Customer model is created
+
+    @pre_load  # Calls below method to process data before being validated/deserialized by schema
+    def strip_data(self, data, **kwargs) -> Any:
+        """Iterate over key-value pairs, strip whitespace from value and return"""
+
+        if not isinstance(data, dict):  # Skips non dict data (i.e nested schemas)
+            return data
+        for key, value in data.items():  # Split into key-value pairs and iterate over
+            value = value.strip() if isinstance(value, str) else value  # Strip strings
+            data[key] = None if value == "" else value  # Replace empty string with None
+        return data  # Replace each value with a stripped version if exists
+
+    country_code = auto_field(  # Validates country_code on schema deserialization
+        required=True,  # Requires field with value
+        validate=[  # Enforce Length and return custom error message when violated
+            Length(equal=2, error="country_code must be exactly 2 characters")
+        ],
+        error_messages={  # Override default error message, when field is empty and required
+            "required": "country_code is required"
+        },
+    )
+
+    state_code = auto_field(  # Validates state_code on schema deserialization
+        required=True,  # Requires field with value
+        validate=[Length(min=2, max=3, error="state_code must be 2-3 characters")],
+        error_messages={"required": "state_code is required"},  # Change default message
+    )
+
+    city = auto_field(  # Validates city on schema deserialization
+        required=False,  # Does not require field
+        allow_none=True,  # If field is provided, allows None value
+        validate=[Length(max=50, error="city name cannot exceed 50 characters")],
+    )
+
+    street = auto_field(  # Validates street on schema deserialization
+        required=True,  # Requires field with value
+        validate=[Length(max=100, error="street cannot exceed 100 characters")],
+        error_messages={"required": "street is required"},  # Change default message
+    )
+
+    postcode = auto_field(  # Validates postcode on schema deserialization
+        required=True,  # Requires field with value
+        validate=[Length(min=2, max=10, error="postcode must be 2-10 characters")],
+        error_messages={"required": "postcode is required"},  # Change default message
+    )
 
 
 address_schema = AddressSchema()  # Instance of schema for single address
