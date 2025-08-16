@@ -2,7 +2,7 @@
 
 from typing import Any  # Used for type hints
 from marshmallow import pre_load  # Used for pre_load hook to strip data
-from marshmallow.validate import Length  # Used to validate length in auto_field
+from marshmallow.validate import Length, Regexp  # Used to validate in auto_field
 from marshmallow_sqlalchemy import (
     SQLAlchemyAutoSchema,  # Auto Schema automatically generates fields based on model
     auto_field,  # Automatically infers data type from model and allows marshmallow validation
@@ -39,8 +39,9 @@ class AddressSchema(SQLAlchemyAutoSchema):
     country_code = auto_field(  # Validates country_code on schema deserialization
         required=True,  # Requires field with value
         validate=[  # Enforce Length and return custom error message when violated
-            Length(equal=2, error="country_code must be exactly 2 characters")
-        ],
+            Length(equal=2, error="country_code must be exactly 2 characters"),
+            Regexp(r"^[A-Za-z]+$", error="country_code must contain only letters"),
+        ],  # Regexp enforces alpha characters only
         error_messages={  # Override default error message, when field is empty and required
             "required": "country_code is required"
         },
@@ -48,7 +49,10 @@ class AddressSchema(SQLAlchemyAutoSchema):
 
     state_code = auto_field(  # Validates state_code on schema deserialization
         required=True,  # Requires field with value
-        validate=[Length(min=2, max=3, error="state_code must be 2-3 characters")],
+        validate=[  # Enforce length & alpha characters
+            Length(min=2, max=3, error="state_code must be 2-3 characters"),
+            Regexp(r"^[A-Za-z]+$", error="state_code must contain only letters"),
+        ],
         error_messages={"required": "state_code is required"},  # Change default message
     )
 
@@ -66,7 +70,10 @@ class AddressSchema(SQLAlchemyAutoSchema):
 
     postcode = auto_field(  # Validates postcode on schema deserialization
         required=True,  # Requires field with value
-        validate=[Length(min=2, max=10, error="postcode must be 2-10 characters")],
+        validate=[  # Enforce length and valid postcode characters
+            Length(min=2, max=10, error="postcode must be 2-10 characters"),
+            Regexp(r"^[a-zA-Z0-9\s\-*]+$", error="must be valid postcode"),
+        ],
         error_messages={"required": "postcode is required"},  # Change default message
     )
 
