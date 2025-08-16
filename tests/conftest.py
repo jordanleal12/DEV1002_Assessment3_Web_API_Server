@@ -3,7 +3,12 @@ passing the output of the functions to the test functions as reusable components
 
 import sys  # Used to add src to path directory python can access
 import os  # Used to convert relative path to src to absolute path
+from typing import Any, Generator, Literal  # Used for type hints
+from flask import Flask  # Used for type hints
+from flask.testing import FlaskClient  # Used for type hints
+from flask_sqlalchemy.session import Session  # Used for type hints
 import pytest  # Used for pytest fixtures
+from sqlalchemy.orm import scoped_session  # Used for type alias for field names
 
 sys.path.insert(  # Allows imports from src folder
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -16,7 +21,7 @@ from models import Address  # Used for pre-filled address instance fixture
 
 @pytest.fixture(scope="function")  # scope='function' ensures fixture is created once
 # per function instead of per module (file) so each test uses fresh db
-def app():
+def app() -> Generator[Flask, Any, None]:
     """Create a Flask application for testing, using the test configuration
     (TestConfig) defined in config.py (sqlite in-memory database)."""
 
@@ -29,7 +34,7 @@ def app():
 
 
 @pytest.fixture
-def client(app):
+def client(app: Flask) -> FlaskClient:
     """Create a test HTTP client for the Flask application, similar to insomnia,
     capable of making HTTP requests and process responses without running the server."""
 
@@ -37,7 +42,7 @@ def client(app):
 
 
 @pytest.fixture
-def db_session(app):
+def db_session(app: Flask) -> Generator[scoped_session[Session], Any, None]:
     """Create a database session for testing."""
 
     with app.app_context():
@@ -50,7 +55,7 @@ def db_session(app):
 
 
 @pytest.fixture
-def address_instance(db_session):
+def address_instance(db_session: scoped_session[Session]) -> Address:
     """Create instance of address as a fixture that can be passed to tests."""
 
     address = Address(  # Pre-filled address instance
@@ -66,7 +71,7 @@ def address_instance(db_session):
 
 
 @pytest.fixture
-def address_json():
+def address_json() -> dict[str, str]:
     """Create dictionary for address that can be passed to tests."""
 
     address_dict = {  # Pre-filled address dictionary
@@ -77,3 +82,6 @@ def address_json():
         "postcode": "12345",
     }
     return address_dict
+
+
+AddressFields = Literal["country_code", "state_code", "city", "street", "postcode"]

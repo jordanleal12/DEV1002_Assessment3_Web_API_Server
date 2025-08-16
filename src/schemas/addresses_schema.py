@@ -26,7 +26,7 @@ class AddressSchema(SQLAlchemyAutoSchema):
         # Relationships to be defined later when Customer model is created
 
     @pre_load  # Calls below method to process data before being validated/deserialized by schema
-    def strip_data(self, data, **kwargs) -> Any:
+    def strip_data(self, data: Any, **kwargs) -> Any:
         """Iterate over key-value pairs, strip whitespace from value and return"""
 
         if not isinstance(data, dict):  # Skips non dict data (i.e nested schemas)

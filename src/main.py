@@ -1,15 +1,19 @@
 """Main application file for creating and configuring Flask application."""
 
-from sqlite3 import Connection as SQLiteConnection
-from flask import Flask
-from sqlalchemy import event
-from sqlalchemy.engine import Engine
-from extensions import db
+from sqlite3 import Connection as SQLiteConnection  # Lets us check if SQLite connection
+from typing import Any  # Used for type hints
+from flask import Flask  # Used for creating Flask app instance
+from sqlalchemy import (
+    PoolProxiedConnection,  # Used for type hints
+    event,  # Used for listening for db connection
+)
+from sqlalchemy.engine import Engine  # Used to listen for Engine connection
+from extensions import db  # SQLAlchemy Instance
 
 
 def create_app(
-    config_class="config.DevConfig",
-):  # Sets DevConfig as default configuration unless different config passed
+    config_class: str | type[Any] = "config.DevConfig",
+) -> Flask:  # Sets DevConfig as default configuration unless different config passed
     """Create and configure Flask application instance using configuration passed by config_class"""
 
     app = Flask(__name__)  # Create Flask app instance
@@ -20,9 +24,9 @@ def create_app(
 
     @event.listens_for(Engine, "connect")  # Listens for database engine connection
     def set_sqlite_pragma(
-        dbapi_connection,  # Represents the database connection object
-        connection_record,  # Connection_record required as listener function expects it
-    ):
+        dbapi_connection: SQLiteConnection | Any,  # Database connection object
+        connection_record: PoolProxiedConnection | Any,  # SQLAlchemy Wrapper
+    ) -> None:
         """Allows SQLite to use FK relationships by executing PRAGMA statement each time
         db connection is made (such as query or transaction) and db instance is SQLite.
         """

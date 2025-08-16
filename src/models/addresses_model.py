@@ -1,6 +1,6 @@
 """Model for creating Address instances with model level validation."""
 
-from typing import Optional  # Allows use of Optional type hint
+from typing import Any  # Allows use of Any type hint
 from sqlalchemy import String  # ,ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, validates  # ,backref, relationship
 from extensions import db  # Allows use of SQLAlchemy in model
@@ -14,12 +14,12 @@ class Address(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)  # Primary Key column
     country_code: Mapped[str] = mapped_column(String(2))  # Enforces max length of 2
     state_code: Mapped[str] = mapped_column(String(3))  # Enforces max length of 3
-    city: Mapped[Optional[str]] = mapped_column(String(50))  # Optional allows nullable
+    city: Mapped[str | None] = mapped_column(String(50))  # Optional allows nullable
     street: Mapped[str] = mapped_column(String(100))
     postcode: Mapped[str] = mapped_column(String(10))  # Max length of postcodes is 10
 
     @validates("country_code")
-    def validate_country_code(self, key, value) -> str | None:
+    def validate_country_code(self, key: str, value: Any) -> str | None:
         """Validates country_code is 2 alphabetical characters long for IS0 3166 country codes."""
 
         # Passes column name, value and model constraints to checks_input function
@@ -29,7 +29,7 @@ class Address(db.Model):
         return value.upper()  # Convert to uppercase for consistency
 
     @validates("state_code")
-    def validate_state_code(self, key, value) -> str | None:
+    def validate_state_code(self, key: str, value: Any) -> str | None:
         """Validates state_code is 2-3 alphabetical characters long for ISO 3166-2 state codes."""
 
         # Passes column name, value and model constraints to checks_input function
@@ -39,7 +39,7 @@ class Address(db.Model):
         return value.upper()  # Convert to uppercase for consistency
 
     @validates("city")
-    def validate_city(self, key, value) -> str | None:
+    def validate_city(self, key: str, value: Any) -> str | None:
         """Validates is string and max character length enforced unless null"""
 
         # Passes column name, value and model constraints to checks_input function
@@ -47,7 +47,7 @@ class Address(db.Model):
         return value.title()  # Convert to titlecase for consistency
 
     @validates("street")
-    def validate_street(self, key, value) -> str | None:
+    def validate_street(self, key: str, value: Any) -> str | None:
         """Validates is string, is not null & max character length is enforced"""
 
         # Passes column name, value and model constraints to checks_input function
@@ -55,7 +55,7 @@ class Address(db.Model):
         return value.title()  # Convert to titlecase for consistency
 
     @validates("postcode")
-    def validate_postcode(self, key, value) -> str | None:
+    def validate_postcode(self, key: str, value: Any) -> str | None:
         """Validates is string, is not null & max character length is enforced"""
 
         # Passes column name, value and model constraints to checks_input function
