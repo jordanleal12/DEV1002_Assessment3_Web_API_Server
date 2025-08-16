@@ -1,6 +1,7 @@
 """Test cases for Address model, schema, and CRUD operations.
 Using TDD, we will implement the tests first and then the corresponding code."""
 
+from flask.testing import FlaskClient
 from conftest import AddressFields
 from flask_sqlalchemy.session import Session
 import pytest  # Required for @parametrize decorator
@@ -223,3 +224,78 @@ def test_schema_valid_char(
 
     with pytest.raises(ValidationError):  # Schema should raise error for bad data
         address_schema.load(address_json)
+
+
+# Test integration
+# ==================================================================================================
+
+
+def test_create_address(client: FlaskClient, address_json: dict[str, str]) -> None:
+    """Test CRUD integration by creating a new address from
+    a fake json POST request using the test client."""
+
+    response = client.post(  # Retrieve fake json data from Flask test client
+        "/addresses",
+        json=address_json,  # A fixture that returns a dict containing address fields
+    )
+    assert response.status_code == 201  # Response for successful creation
+    assert response.json["street"] == "123 Test St"  # Check correct values in response
+
+
+def test_get_address(client: FlaskClient, address_instance: Address) -> None:
+    """Test CRUD integration by asserting address instance is in database
+    using a fake GET request using the test client."""
+
+    addr_id = address_instance.id  # Assign address id based on id of instance in db
+    response = client.get(f"/addresses/{addr_id}")  # Simulate get request using client
+    assert response.status_code == 200  # Assert successful request
+    assert response.json["country_code"] == "US"  # Assert data matches expected value
+
+
+def test_get_addresses(
+    db_session: scoped_session[Session], client: FlaskClient, address_instance: Address
+) -> None:
+    """Test CRUD integration by asserting multiple address instances are in database
+    using a fake GET request using the test client."""
+
+    addr2 = Address(  # Create second Address instance
+        country_code="AU",
+        state_code="NSW",
+        city="Sydney",
+        street="42 Wallaby Way",
+        postcode="2000",
+    )
+    db_session.add(addr2)
+    db_session.commit()  # Commit second Address to db
+
+    response = client.get("/addresses")  # Simulate GET request for all addresses
+    assert response.status_code == 200  # Assert successful request
+    assert len(response.json) == 2  # Assert expected number of address instances
+
+
+def test_update_address(
+    db_session: scoped_session[Session], client: FlaskClient, address_instance: Address
+) -> None:
+    """Test CRUD integration by asserting address instance is updated in database
+    using a fake PUT request using the test client."""
+
+    addr_id = address_instance.id  # Assign address id based on id of instance in db
+    new_data = {"street": "69 Oxford St"}
+    response = client.put(f"/addresses/{addr_id}", json=new_data)  # Simulate PUT
+
+    assert response.status_code == 200  # Assert successful request
+    assert response.json["street"] == "69 Oxford St"  # Assert new value in response
+    db_session.refresh(address_instance)  # Refresh db
+    assert address_instance.street == "69 Oxford St"  # Assert db instance updated
+
+
+def test_delete_address(
+    db_session: scoped_session[Session], client: FlaskClient, address_instance: Address
+) -> None:
+    """Test CRUD integration by asserting address instance is deleted in database
+    using a fake DELETE request using the test client."""
+
+    addr_id = address_instance.id  # Assign address id based on id of instance in db
+    response = client.delete(f"/addresses/{addr_id}")  # Simulate DELETE request
+    assert response.status_code == 204  # Assert successful deletion
+    assert db_session.get(Address, addr_id) is None  # Check Address instance deleted
