@@ -1,16 +1,20 @@
 """Test cases for Address model, schema, and CRUD operations.
 Using TDD, we will implement the tests first and then the corresponding code."""
 
+from conftest import AddressFields
+from flask_sqlalchemy.session import Session
 import pytest  # Required for @parametrize decorator
-from marshmallow import ValidationError  # Raised when validation fails on schema
+from marshmallow import ValidationError
+from sqlalchemy.orm import scoped_session  # Raised when validation fails on schema
 from models import Address  # Used for model validation
 from schemas import address_schema  # Must be written to pass schema tests
+
 
 # Test model level validation
 # ==================================================================================================
 
 
-def test_address_creation(db_session):
+def test_address_creation(db_session: scoped_session[Session]) -> None:
     """Test the model by creating a new address instance."""
 
     # Create address instance using Address model
@@ -44,7 +48,9 @@ def test_address_creation(db_session):
         ("postcode", ""),
     ],
 )
-def test_model_required_fields(field, value, address_instance) -> None:
+def test_model_required_fields(
+    field: AddressFields, value: str | None, address_instance: Address
+) -> None:
     """Test that required fields are enforced in the Address model."""
 
     # address_instance is a pytest fixture containing a pre-made address instance
@@ -63,11 +69,39 @@ def test_model_required_fields(field, value, address_instance) -> None:
         ("state_code", "p"),  # Under min length (2)
         ("city", ("a" * 51)),  # Exceeds max length (50)
         ("street", ("a" * 101)),  # Exceeds max length (100)
+        ("postcode", ("a" * 1)),  # Under min length (2)
         ("postcode", ("a" * 11)),  # Exceeds max length (10)
     ],
 )
-def test_model_column_length(field, value, address_instance):
+def test_model_column_length(
+    field: AddressFields, value: str, address_instance: Address
+) -> None:
     """Test that max column character length is enforced by model."""
+
+    # address_instance is a pytest fixture containing a pre-made address instance
+    with pytest.raises(ValueError):  # Checks error is raised with wrong input
+        setattr(address_instance, field, value)  # Replace address_instance fields with
+        # invalid data per each iteration
+
+
+# Create parametrize decorated function to allow iteration of test cases
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("country_code", "12"),  # Alpha characters only
+        ("country_code", 12),  # String only
+        ("state_code", "123"),  # Alpha characters only
+        ("state_code", 123),  # String only
+        ("city", 123),  # String only
+        ("street", 123),  # String only
+        ("postcode", "123@#$"),  # Alphanumeric characters, whitespace and hyphens only
+        ("postcode", 123456),  # String only
+    ],
+)
+def test_model_valid_char(
+    field: AddressFields, value: str | int, address_instance: Address
+) -> None:
+    """Test that invalid character/type is enforced by model."""
 
     # address_instance is a pytest fixture containing a pre-made address instance
     with pytest.raises(ValueError):  # Checks error is raised with wrong input
@@ -127,7 +161,9 @@ def test_missing_schema_key(address_json: dict[str, str]) -> None:
         ("postcode", ""),
     ],
 )
-def test_schema_required_fields(address_json: dict[str, str], field, value):
+def test_schema_required_fields(
+    address_json: dict[str, str], field: AddressFields, value: None | str
+) -> None:
     """Test schema enforces Null and empty string values for required fields."""
 
     data = address_json  # Fresh dictionary for each iteration
@@ -147,11 +183,40 @@ def test_schema_required_fields(address_json: dict[str, str], field, value):
         ("state_code", "p"),  # Under min length (2)
         ("city", ("a" * 51)),  # Exceeds max length (50)
         ("street", ("a" * 101)),  # Exceeds max length (100)
-        ("postcode", ("a" * 11)),  # Exceeds max length (10)
+        ("postcode", "1"),  # Under min length (2)
+        ("postcode", ("1" * 11)),  # Exceeds max length (10)
     ],
 )
-def test_schema_column_length(address_json: dict[str, str], field, value):
+def test_schema_column_length(
+    address_json: dict[str, str], field: AddressFields, value: str
+) -> None:
     """Test schema enforces min and max column length."""
+
+    data = address_json  # Fresh dictionary for each iteration
+    data[field] = value  # Replace each field with invalid data each iteration
+
+    with pytest.raises(ValidationError):  # Schema should raise error for bad data
+        address_schema.load(address_json)
+
+
+# Create parametrize decorated function to allow iteration of test cases
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("country_code", "12"),  # Alpha characters only
+        ("country_code", 12),  # String only
+        ("state_code", "123"),  # Alpha characters only
+        ("state_code", 123),  # String only
+        ("city", 123),  # String only
+        ("street", 123),  # String only
+        ("postcode", "123@#$"),  # Alphanumeric characters, whitespace and hyphens only
+        ("postcode", 123456),  # String only
+    ],
+)
+def test_schema_valid_char(
+    address_json: dict[str, str], field: AddressFields, value: str | int
+) -> None:
+    """Test that invalid character/type is enforced by schema."""
 
     data = address_json  # Fresh dictionary for each iteration
     data[field] = value  # Replace each field with invalid data each iteration
