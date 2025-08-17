@@ -8,7 +8,6 @@ from marshmallow_sqlalchemy import (
     auto_field,  # Automatically infers data type from model and allows marshmallow validation
 )
 from models import Address  # Addresses model
-from extensions import db  # SQLAlchemy instance
 
 
 class AddressSchema(SQLAlchemyAutoSchema):
@@ -20,8 +19,6 @@ class AddressSchema(SQLAlchemyAutoSchema):
         model = Address
         load_instance = False  # Prevent automatic deserialization, which can trigger
         # Model level validation and skip schema validation
-        sqla_session = db.session  # Links SQLAlchemy session to the schema, allowing it
-        # to validate and load objects from foreign key/relationships when deserializing
 
         # Relationships to be defined later when Customer model is created
 

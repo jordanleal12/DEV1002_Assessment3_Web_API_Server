@@ -9,6 +9,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine import Engine  # Used to listen for Engine connection
 from extensions import db  # SQLAlchemy Instance
+from controllers import controller_blueprints  # Used to register blueprint controllers
 
 
 def create_app(
@@ -35,5 +36,8 @@ def create_app(
             cursor = dbapi_connection.cursor()  # Create cursor object for SQL commands
             cursor.execute("PRAGMA foreign_keys=ON")  # Executes command per connection
             cursor.close()  # Close cursor to free resources
+
+    for controller in controller_blueprints:
+        app.register_blueprint(controller)  # Register each blueprint controller
 
     return app  # Return the configured app instance

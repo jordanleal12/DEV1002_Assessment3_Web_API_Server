@@ -1,14 +1,14 @@
 """Test cases for Address model, schema, and CRUD operations.
 Using TDD, we will implement the tests first and then the corresponding code."""
 
-from flask.testing import FlaskClient
-from conftest import AddressFields
-from flask_sqlalchemy.session import Session
+from flask.testing import FlaskClient  # Used for type hints
+from conftest import AddressFields  # Used for type hints
+from flask_sqlalchemy.session import Session  # Used for type hints
 import pytest  # Required for @parametrize decorator
-from marshmallow import ValidationError
+from marshmallow import ValidationError  # Expected schema validation error
 from sqlalchemy.orm import scoped_session  # Raised when validation fails on schema
 from models import Address  # Used for model validation
-from schemas import address_schema  # Must be written to pass schema tests
+from schemas import address_schema  # Used for schema tests
 
 
 # Test model level validation
