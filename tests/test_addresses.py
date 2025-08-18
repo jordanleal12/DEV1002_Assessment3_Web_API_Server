@@ -297,5 +297,5 @@ def test_delete_address(
 
     addr_id = address_instance.id  # Assign address id based on id of instance in db
     response = client.delete(f"/addresses/{addr_id}")  # Simulate DELETE request
-    assert response.status_code == 204  # Assert successful deletion
+    assert response.status_code == 200  # Assert successful deletion
     assert db_session.get(Address, addr_id) is None  # Check Address instance deleted

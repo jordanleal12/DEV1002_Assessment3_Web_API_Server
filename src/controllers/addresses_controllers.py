@@ -72,7 +72,7 @@ def update_address(address_id):
 
     # Check address_id is positive integer
     if address_id < 1:
-        raise ValueError("Address ID must be a positive integer")
+        abort(400, description="Address ID must be a positive integer")
 
     address = db.session.get(Address, address_id)  # Get address instance
 
@@ -99,3 +99,26 @@ def update_address(address_id):
     db.session.commit()
 
     return jsonify(address_schema.dump(updated_address)), 200
+
+
+@addresses.route("/<int:address_id>", methods=["DELETE"])
+@handle_errors  # Adds function as decorator to run error handling
+def delete_address(address_id):
+    """Delete single address instance from db using DELETE request."""
+
+    # Check address_id is positive integer
+    if address_id < 1:
+        abort(400, description="Address ID must be a positive integer")
+
+    address = db.session.get(Address, address_id)  # Get address instance
+
+    if not address:  # Raise HTTP exception if no instance with id
+        abort(404, description=f"Address with ID {address_id} not found")
+
+    db.session.delete(address)  # Delete address instance from database
+    db.session.commit()
+
+    return (
+        jsonify(address_schema.dump(address)),
+        200,
+    )  # Return json of deleted address instance
