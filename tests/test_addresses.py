@@ -279,9 +279,9 @@ def test_update_address(
     """Test CRUD integration by asserting address instance is updated in database
     using a fake PUT request using the test client."""
 
-    addr_id = address_instance.id  # Assign address id based on id of instance in db
+    address_id = address_instance.id  # Assign address id based on id of instance in db
     new_data = {"street": "69 Oxford St"}
-    response = client.put(f"/addresses/{addr_id}", json=new_data)  # Simulate PUT
+    response = client.patch(f"/addresses/{address_id}", json=new_data)  # Simulate Patch
 
     assert response.status_code == 200  # Assert successful request
     assert response.json["street"] == "69 Oxford St"  # Assert new value in response

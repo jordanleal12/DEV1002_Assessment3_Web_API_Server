@@ -6,6 +6,7 @@ from psycopg2 import (
     OperationalError,  # Database operation errors
     errorcodes,  # For diagnosing error codes
 )
+from werkzeug.exceptions import HTTPException  # Flask level exceptions (e.g. abort)
 from extensions import db  # SQLAlchemy instance
 
 
@@ -16,6 +17,17 @@ def handle_errors(func):
     def decorated_function(*args, **kwargs):
         try:
             return func(*args, **kwargs)  # Attempts route with error handling
+
+        except HTTPException as e:  # Flask level exceptions (e.g. abort)
+            return (
+                jsonify(
+                    {
+                        "error": e.name,  # Error name, e.g. "Not Found"
+                        "message": e.description or "An error occurred",
+                    }
+                ),
+                e.code,  # Attaches error code (e.g. 404)
+            )
 
         except ValidationError as e:  # Schema level validation errors
             return (

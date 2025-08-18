@@ -1,7 +1,10 @@
 """Schema for Address using Marshmallow"""
 
 from typing import Any  # Used for type hints
-from marshmallow import pre_load  # Used for pre_load hook to strip data
+from marshmallow import (
+    pre_load,  # Schema uses pre_load hook to strip data before validating
+    EXCLUDE,  # unknown = EXCLUDE ignores extra or invalid fields
+)
 from marshmallow.validate import Length, Regexp  # Used to validate in auto_field
 from marshmallow_sqlalchemy import (
     SQLAlchemyAutoSchema,  # Auto Schema automatically generates fields based on model
@@ -19,7 +22,7 @@ class AddressSchema(SQLAlchemyAutoSchema):
         model = Address
         load_instance = False  # Prevent automatic deserialization, which can trigger
         # Model level validation and skip schema validation
-
+        unknown = EXCLUDE  # Ignores extra or unknown fields in requests
         # Relationships to be defined later when Customer model is created
 
     @pre_load  # Calls below method to process data before being validated/deserialized by schema
@@ -32,6 +35,8 @@ class AddressSchema(SQLAlchemyAutoSchema):
             value = value.strip() if isinstance(value, str) else value  # Strip strings
             data[key] = None if value == "" else value  # Replace empty string with None
         return data  # Replace each value with a stripped version if exists
+
+    id = auto_field(dump_only=True)  # Lets PK be viewed but not changed from routes
 
     country_code = auto_field(  # Validates country_code on schema deserialization
         required=True,  # Requires field with value

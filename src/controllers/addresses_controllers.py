@@ -5,6 +5,7 @@ from flask import (
     request,  # Used for HTTP requests
     jsonify,  # Serializes data to json
 )
+from werkzeug.exceptions import abort  # Used to raise HTTP exceptions
 from extensions import db  # SQLAlchemy instance
 from models import Address  # Address model
 from schemas import address_schema, addresses_schema  # Address schemas
@@ -19,9 +20,9 @@ addresses = Blueprint("addresses", __name__, url_prefix="/addresses")
 def create_address():
     """Create a new address from a POST request."""
 
-    data = request.get_json()  # Allows custom arguments, request.json does not
+    data = request.get_json(silent=True)  # Prevents error raising on invalid json
     if not data:  # Validate that request contains data
-        raise ValueError("No input data provided")
+        abort(404, description="Json data is missing or invalid")
 
     loaded_data = address_schema.load(data)  # Validate/deserialize with schema
     address = Address(**loaded_data)  # Validate/deserialize with model
@@ -52,12 +53,49 @@ def get_address(address_id):
     """Fetch single address instance from db using GET request."""
 
     # Check address_id is positive integer
-    if not isinstance(address_id, int) or address_id < 1:
+    if address_id < 1:
         raise ValueError("Address ID must be a positive integer")
 
     address = db.session.get(Address, address_id)  # Get address instance
 
-    if not address:
-        raise ValueError(f"Address with id {address_id} not found")
+    if not address:  # Raise HTTP exception if no instance with id
+        abort(404, description=f"Address with ID {address_id} not found")
+
     data = address_schema.dump(address)
     return jsonify(data), 200  # Return json of single address instance
+
+
+@addresses.route("/<int:address_id>", methods=["PUT", "PATCH"])
+@handle_errors  # Adds function as decorator to run error handling
+def update_address(address_id):
+    """Fetch and update address instance using PUT/PATCH request"""
+
+    # Check address_id is positive integer
+    if address_id < 1:
+        raise ValueError("Address ID must be a positive integer")
+
+    address = db.session.get(Address, address_id)  # Get address instance
+
+    if not address:  # Raise HTTP exception if no instance with id
+        abort(404, description=f"Address with ID {address_id} not found")
+
+    json_data = request.get_json(silent=True)  # Prevents error raising on invalid json
+    if not json_data:
+        abort(404, description="Json data is missing or invalid")
+
+    true_if_patch = request.method == "PATCH"  # True if PATCH else False
+
+    # Deserialize and validate with schema
+    updated_address = address_schema.load(
+        json_data,  # Passes Json data from HTTP request
+        partial=true_if_patch,  # Ignores missing fields if PATCH
+        session=db.session,  # Allows validation of FK relationships
+    )
+
+    # Update instance attributes and validate with model before commit
+    for field, value in updated_address.items():
+        setattr(address, field, value)
+
+    db.session.commit()
+
+    return jsonify(address_schema.dump(updated_address)), 200
