@@ -226,7 +226,7 @@ def test_schema_valid_char(
         address_schema.load(address_json)
 
 
-# Test integration
+# Test integration/routes
 # ==================================================================================================
 
 
@@ -273,7 +273,7 @@ def test_get_addresses(
     assert len(response.json) == 2  # Assert expected number of address instances
 
 
-def test_update_address(
+def test_patch_update_address(
     db_session: scoped_session[Session], client: FlaskClient, address_instance: Address
 ) -> None:
     """Test CRUD integration by asserting address instance is updated in database
@@ -289,6 +289,28 @@ def test_update_address(
     assert address_instance.street == "69 Oxford St"  # Assert db instance updated
 
 
+def test_put_update_address(
+    db_session: scoped_session[Session], client: FlaskClient, address_instance: Address
+) -> None:
+    """Test CRUD integration by asserting address instance is updated in database
+    using a fake PUT request using the test client."""
+
+    address_id = address_instance.id  # Assign address id based on id of instance in db
+    new_data = {
+        "country_code": "AU",
+        "state_code": "NSW",
+        "city": "Sydney",
+        "street": "69 Oxford St",
+        "postcode": "2000",
+    }
+    response = client.put(f"/addresses/{address_id}", json=new_data)  # Simulate Patch
+
+    assert response.status_code == 200  # Assert successful request
+    assert response.json["state_code"] == "NSW"  # Assert new value in response
+    db_session.refresh(address_instance)  # Refresh db
+    assert address_instance.postcode == "2000"  # Assert db instance updated
+
+
 def test_delete_address(
     db_session: scoped_session[Session], client: FlaskClient, address_instance: Address
 ) -> None:
@@ -299,3 +321,47 @@ def test_delete_address(
     response = client.delete(f"/addresses/{addr_id}")  # Simulate DELETE request
     assert response.status_code == 200  # Assert successful deletion
     assert db_session.get(Address, addr_id) is None  # Check Address instance deleted
+
+
+def test_bad_json_create_address(client: FlaskClient) -> None:
+    """Test CRUD exception handling by creating a new address from
+    an invalid json POST request using the test client."""
+
+    resp = client.post("/addresses")  # Missing json request
+    assert resp.status_code == 404  # Expected error
+
+
+def test_missing_field_create_address(client: FlaskClient, address_json: dict) -> None:
+    """Test CRUD exception handling by updating an address from
+    an invalid POST request with missing field using the test client."""
+
+    address_json.pop("street")  # Remove street field from json
+    response = client.post("/addresses", json=address_json)  # Attempt invalid POST
+
+    assert response.status_code == 400
+
+    body = response.get_json()  # Retrieve error response
+    assert body["error"] == "Schema Validation Failed"  # Check correct validation
+
+
+def test_invalid_field_create_address(client: FlaskClient, address_json: dict) -> None:
+    """Test CRUD exception handling by updating an address from
+    an invalid POST request with invalid data using the test client."""
+
+    address_json["country_code"] = "1"  # Invalid value
+    response = client.post("/addresses", json=address_json)  # Attempt invalid POST
+
+    assert response.status_code == 400  # Expected error
+    body = response.get_json()  # Retrieve error response
+    assert body["error"] == "Schema Validation Failed"  # Check correct validation
+
+
+def test_get_invalid_address(client: FlaskClient) -> None:
+    """Test CRUD exception handling by fetching an address from
+    a GET request with invalid address_id using the test client."""
+
+    response = client.get("/addresses/999")  # Attempt invalid address_id
+
+    assert response.status_code == 404  # Expected Error
+    body = response.get_json()  # Retrieve error response
+    assert "not found" in body["message"]  # Check for correct response

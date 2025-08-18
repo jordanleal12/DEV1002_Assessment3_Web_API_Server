@@ -54,7 +54,7 @@ def get_address(address_id):
 
     # Check address_id is positive integer
     if address_id < 1:
-        raise ValueError("Address ID must be a positive integer")
+        abort(400, description="Address ID must be a positive integer")
 
     address = db.session.get(Address, address_id)  # Get address instance
 
