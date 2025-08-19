@@ -88,6 +88,19 @@ AddressFields = Literal["country_code", "state_code", "city", "street", "postcod
 
 
 @pytest.fixture
+def name2_instance(db_session: scoped_session[Session]) -> Name:
+    """Create instance of address as a fixture that can be passed to tests."""
+
+    name2 = Name(  # Pre-filled address instance
+        first_name="Jack",
+        last_name="Sparrow",
+    )
+    db_session.add(name2)
+    db_session.commit()
+    return name2
+
+
+@pytest.fixture
 def name_instance(db_session: scoped_session[Session]) -> Name:
     """Create instance of address as a fixture that can be passed to tests."""
 
@@ -115,3 +128,20 @@ def customer_instance(
     db_session.add(customer)
     db_session.commit()
     return customer
+
+
+@pytest.fixture
+def customer2_instance(
+    db_session: scoped_session[Session], address_instance: Address, name2_instance: Name
+) -> Customer:
+    """Create instance of address as a fixture that can be passed to tests."""
+
+    customer2 = Customer(
+        name_id=name2_instance.id,
+        email="jacksparrow@email.com",
+        phone="+61487654321",
+        address_id=address_instance.id,
+    )
+    db_session.add(customer2)
+    db_session.commit()
+    return customer2
