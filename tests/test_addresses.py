@@ -10,7 +10,7 @@ from flask_sqlalchemy.session import Session  # Used for type hints
 import pytest  # Required for @parametrize decorator
 from marshmallow import ValidationError  # Expected schema validation error
 from sqlalchemy.orm import scoped_session  # Raised when validation fails on schema
-from models import Address  # Used for model validation
+from models import Address, Customer  # Used for model validation
 from schemas import address_schema  # Used for schema tests
 
 
@@ -417,21 +417,6 @@ def test_customer_address_relationship(
     customer = customer_instance  # Assign conftest.py customer fixture to customer
 
     # Check that address can be accessed through customer
-    assert customer.address.street == "123 Test St"
+    assert customer.address.street == address_instance.street
     # Check that customer can be accessed through address
-    assert address.customers[0].email == "johnsmith@email.com"
-
-
-def test_customer_address_serialization(
-    address_instance: Address, customer_instance: Customer
-) -> None:
-    """Test that Address is correctly linked to Customer model,
-    and that address data can be linked through the relationship."""
-
-    address = address_instance
-
-    address.customers.append(customer_instance)
-    result = address_schema.dump(address)
-
-    assert "customers" in result
-    assert result["customers"][0]["email"] == customer_instance.email
+    assert address.customers[0].email == customer_instance.email

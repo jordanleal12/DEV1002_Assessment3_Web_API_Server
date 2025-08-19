@@ -16,7 +16,7 @@ sys.path.insert(  # Allows imports from src folder
 # Below absolute path declaration so imports happen using new path
 from main import create_app  # Used to setup app instance with test configuration
 from extensions import db  # To link SQLAlchemy
-from models import Address  # Used for pre-filled address instance fixture
+from models import Address, Customer, Name  # Used for pre-filled instance fixture
 
 
 @pytest.fixture(scope="function")  # scope='function' ensures fixture is created once
@@ -88,14 +88,26 @@ AddressFields = Literal["country_code", "state_code", "city", "street", "postcod
 
 
 @pytest.fixture
+def name_instance(db_session: scoped_session[Session]) -> Name:
+    """Create instance of address as a fixture that can be passed to tests."""
+
+    name = Name(  # Pre-filled address instance
+        first_name="John",
+        last_name="Smith",
+    )
+    db_session.add(name)
+    db_session.commit()
+    return name
+
+
+@pytest.fixture
 def customer_instance(
-    db_session: scoped_session[Session], address_instance: Address
+    db_session: scoped_session[Session], address_instance: Address, name_instance: Name
 ) -> Customer:
     """Create instance of address as a fixture that can be passed to tests."""
 
     customer = Customer(
-        f_name="John",
-        l_name="Smith",
+        name_id=name_instance.id,
         email="johnsmith@email.com",
         phone="+61412345678",
         address_id=address_instance.id,
