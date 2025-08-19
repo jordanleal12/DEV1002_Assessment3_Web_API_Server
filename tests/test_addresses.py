@@ -1,7 +1,10 @@
 """Test cases for Address model, schema, and CRUD operations.
 Using TDD, we will implement the tests first and then the corresponding code."""
 
-from flask.testing import FlaskClient  # Used for type hints
+from flask import Flask
+from flask.testing import FlaskClient
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import insert  # Used for type hints
 from conftest import AddressFields  # Used for type hints
 from flask_sqlalchemy.session import Session  # Used for type hints
 import pytest  # Required for @parametrize decorator
@@ -365,3 +368,70 @@ def test_get_invalid_address(client: FlaskClient) -> None:
     assert response.status_code == 404  # Expected Error
     body = response.get_json()  # Retrieve error response
     assert "not found" in body["message"]  # Check for correct response
+
+
+# Test database level validation
+# ==================================================================================================
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("country_code", None),
+        ("state_code", None),
+        ("street", None),
+        ("postcode", None),
+    ],
+)
+def test_address_database_not_null(
+    db_session: scoped_session[Session],
+    address_json: dict[str, str],
+    field: AddressFields,
+    value: None,
+) -> None:
+    """
+    Use an insert statement to bypass model validation and insert NULL value into a NOT NULL
+    enforced column in the database, raising IntegrityError
+    """
+
+    data = address_json
+    data[field] = value  # Replace each fields value with None per iteration
+    # Create SQL insert statement, bypassing model validation
+    stmt = insert(Address).values(data)
+
+    with pytest.raises(IntegrityError):  # Expected error
+        db_session.execute(stmt)  # Error should trigger on execute, commit not required
+
+
+# Test relationship handling
+# ==================================================================================================
+
+
+def test_customer_address_relationship(
+    address_instance: Address, customer_instance: Customer
+) -> None:
+    """Test that Address is correctly linked to Customer model,
+    and that address data can be linked through the relationship."""
+
+    address = address_instance  # Assign conftest.py address fixture to address
+    customer = customer_instance  # Assign conftest.py customer fixture to customer
+
+    # Check that address can be accessed through customer
+    assert customer.address.street == "123 Test St"
+    # Check that customer can be accessed through address
+    assert address.customers[0].email == "johnsmith@email.com"
+
+
+def test_customer_address_serialization(
+    address_instance: Address, customer_instance: Customer
+) -> None:
+    """Test that Address is correctly linked to Customer model,
+    and that address data can be linked through the relationship."""
+
+    address = address_instance
+
+    address.customers.append(customer_instance)
+    result = address_schema.dump(address)
+
+    assert "customers" in result
+    assert result["customers"][0]["email"] == customer_instance.email

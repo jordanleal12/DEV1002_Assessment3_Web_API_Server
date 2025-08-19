@@ -85,3 +85,21 @@ def address_json() -> dict[str, str]:
 
 
 AddressFields = Literal["country_code", "state_code", "city", "street", "postcode"]
+
+
+@pytest.fixture
+def customer_instance(
+    db_session: scoped_session[Session], address_instance: Address
+) -> Customer:
+    """Create instance of address as a fixture that can be passed to tests."""
+
+    customer = Customer(
+        f_name="John",
+        l_name="Smith",
+        email="johnsmith@email.com",
+        phone="+61412345678",
+        address_id=address_instance.id,
+    )
+    db_session.add(customer)
+    db_session.commit()
+    return customer
