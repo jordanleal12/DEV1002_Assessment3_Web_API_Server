@@ -10,7 +10,7 @@ from flask_sqlalchemy.session import Session  # Used for type hints
 import pytest  # Required for @parametrize decorator
 from marshmallow import ValidationError  # Expected schema validation error
 from sqlalchemy.orm import scoped_session  # Raised when validation fails on schema
-from models import Address, Customer  # Used for model validation
+from models import Address, Customer, Name  # Used for model validation
 from schemas import address_schema  # Used for schema tests
 
 
@@ -420,3 +420,48 @@ def test_customer_address_relationship(
     assert customer.address.street == address_instance.street
     # Check that customer can be accessed through address
     assert address.customers[0].email == customer_instance.email
+
+
+def test_delete_address_nulls_customer_fk(
+    db_session: scoped_session[Session],
+    address_instance: Address,
+    customer_instance: Customer,
+) -> None:
+    """
+    Test Address relationship with customers, asserting deleting address instance sets customers
+    address_id to Null and doesn't delete customer instance.
+    """
+
+    address_id = address_instance.id  # Save ID before delete
+    db_session.delete(address_instance)  # Delete address linked to customer
+    db_session.commit()
+
+    assert db_session.get(Address, address_id) is None  # Check address instance deleted
+    assert customer_instance is not None  # Check associated customer not deleted
+    assert customer_instance.address_id is None  # Check customers address_id was Nulled
+
+
+def test_delete_all_customers_deletes_address(
+    db_session: scoped_session[Session],
+    address_instance: Address,
+    customer_instance: Customer,
+    customer2_instance: Customer,
+) -> None:
+    """
+    Test Address relationship with customers, when multiple customers are associated with a single
+    address, address instance will persist unless all associated customers are deleted.
+    """
+
+    address_id = address_instance.id  # Store address id before delete
+
+    db_session.delete(customer_instance)  # Delete address linked to customer
+    db_session.commit()
+
+    assert db_session.get(Customer, customer_instance.id) is None  # Check cust1 deleted
+    assert db_session.get(Address, address_id) is not None  # Check address not deleted
+
+    db_session.delete(customer2_instance)
+    db_session.commit()
+    # Check customer 2 deleted
+    assert db_session.get(Customer, customer2_instance.id) is None
+    assert db_session.get(Address, address_id) is None  # Check address deleted
