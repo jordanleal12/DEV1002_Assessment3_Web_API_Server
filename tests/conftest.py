@@ -50,7 +50,7 @@ def db_session(app: Flask) -> Generator[scoped_session[Session], Any, None]:
         db.session.rollback()  # Undo any changes to the database after each test
 
 
-# Pytest fixtures to pass pre-filled model instance or dictionary instance to tests
+# Pytest Address fixtures to pass pre-filled address instance or dictionary to tests
 # ==================================================================================================
 
 
@@ -87,6 +87,23 @@ def address_json() -> dict[str, str]:
 AddressFields = Literal["country_code", "state_code", "city", "street", "postcode"]
 
 
+# Pytest Name fixtures to pass pre-filled name instance or dictionary to tests
+# ==================================================================================================
+
+
+@pytest.fixture
+def name_instance(db_session: scoped_session[Session]) -> Name:
+    """Create instance of address as a fixture that can be passed to tests."""
+
+    name = Name(  # Pre-filled address instance
+        first_name="John",
+        last_name="Smith",
+    )
+    db_session.add(name)
+    db_session.commit()
+    return name
+
+
 @pytest.fixture
 def name2_instance(db_session: scoped_session[Session]) -> Name:
     """Create instance of address as a fixture that can be passed to tests."""
@@ -101,16 +118,20 @@ def name2_instance(db_session: scoped_session[Session]) -> Name:
 
 
 @pytest.fixture
-def name_instance(db_session: scoped_session[Session]) -> Name:
-    """Create instance of address as a fixture that can be passed to tests."""
+def name_json() -> dict[str, str]:
+    """Create dictionary for address that can be passed to tests."""
 
-    name = Name(  # Pre-filled address instance
-        first_name="John",
-        last_name="Smith",
-    )
-    db_session.add(name)
-    db_session.commit()
-    return name
+    name_dict = {  # Pre-filled address dictionary
+        "first_name": "John",
+        "last_name": "Smith",
+    }
+    return name_dict
+
+
+NameFields = Literal["first_name", "last_name"]
+
+# Pytest Customer fixtures to pass pre-filled customer instance or dictionary to tests
+# ==================================================================================================
 
 
 @pytest.fixture
@@ -145,3 +166,19 @@ def customer2_instance(
     db_session.add(customer2)
     db_session.commit()
     return customer2
+
+
+@pytest.fixture
+def customer_json() -> dict[str, str]:
+    """Create dictionary for address that can be passed to tests."""
+
+    customer_dict = {  # Pre-filled address dictionary
+        "name_id": 1,
+        "email": "johnsmith@email.com",
+        "phone": "+61412345678",
+        "address_id": 1,
+    }
+    return customer_dict
+
+
+CustomerFields = Literal["name_id", "email", "phone", "address_id"]
