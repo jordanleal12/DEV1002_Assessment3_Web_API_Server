@@ -1,7 +1,6 @@
 """Test cases for Name model, schema, and CRUD operations.
 Using TDD, we will implement the tests first and then the corresponding code."""
 
-from flask.testing import FlaskClient
 from sqlalchemy import insert  # Used for type hints
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import scoped_session  # Raised when validation fails on schema

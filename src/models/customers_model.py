@@ -33,6 +33,7 @@ class Customer(db.Model):
 
     name: Mapped["Name"] = relationship(
         back_populates="customer",  # links relationship with names
+        cascade="all, delete-orphan",  # Deletes name when customer is deleted
         single_parent=True,  # Required for one to one relationship
     )
     address: Mapped["Address"] = relationship(back_populates="customers")
