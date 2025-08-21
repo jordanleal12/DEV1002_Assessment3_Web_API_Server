@@ -4,12 +4,12 @@ from typing import Optional  # Used for type hints 'optional' tag
 
 
 def checks_input(
-    value: Optional[str],
+    value: str | None,
     column_name: str,
     required: bool = True,
     data_type: type[any] = str,
-    min_len: Optional[int] = None,
-    max_len: Optional[int] = None,
+    min_len: int | None = None,
+    max_len: int | None = None,
 ) -> any:
     """
     Takes a column input to be passed to an @validates decorator, checking if value exists if

@@ -1,16 +1,15 @@
 """Test cases for Address model, schema, and CRUD operations.
 Using TDD, we will implement the tests first and then the corresponding code."""
 
-from flask import Flask
 from flask.testing import FlaskClient
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy import insert  # Used for type hints
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import scoped_session  # Raised when validation fails on schema
 from conftest import AddressFields  # Used for type hints
 from flask_sqlalchemy.session import Session  # Used for type hints
 import pytest  # Required for @parametrize decorator
 from marshmallow import ValidationError  # Expected schema validation error
-from sqlalchemy.orm import scoped_session  # Raised when validation fails on schema
-from models import Address, Customer, Name  # Used for model validation
+from models import Address, Customer  # Used for model validation
 from schemas import address_schema  # Used for schema tests
 
 
@@ -44,15 +43,19 @@ def test_address_creation(db_session: scoped_session[Session]) -> None:
     [
         ("country_code", None),
         ("country_code", ""),
+        ("country_code", "  "),  # Whitespace only should fail
         ("state_code", None),
         ("state_code", ""),
+        ("state_code", "   "),  # Whitespace only should fail
         ("street", None),
         ("street", ""),
+        ("street", "     "),  # Whitespace only should fail
         ("postcode", None),
         ("postcode", ""),
+        ("postcode", "    "),  # Whitespace only should fail
     ],
 )
-def test_model_required_fields(
+def test_address_model_required_fields(
     field: AddressFields, value: str | None, address_instance: Address
 ) -> None:
     """Test that required fields are enforced in the Address model."""
@@ -77,7 +80,7 @@ def test_model_required_fields(
         ("postcode", ("a" * 11)),  # Exceeds max length (10)
     ],
 )
-def test_model_column_length(
+def test_address_model_column_length(
     field: AddressFields, value: str, address_instance: Address
 ) -> None:
     """Test that max column character length is enforced by model."""
@@ -94,15 +97,25 @@ def test_model_column_length(
     [
         ("country_code", "12"),  # Alpha characters only
         ("country_code", 12),  # String only
+        ("country_code", ["U", "S"]),  # String only
+        ("country_code", {"U": "S"}),  # String only
         ("state_code", "123"),  # Alpha characters only
         ("state_code", 123),  # String only
+        ("state_code", ["C", "A"]),  # String only
+        ("state_code", {"C": "A"}),  # String only
         ("city", 123),  # String only
+        ("city", ["LA", "San Diego"]),  # String only
+        ("city", {"LA": "San Diego"}),  # String only
         ("street", 123),  # String only
+        ("street", ["123", "Test St"]),  # String only
+        ("street", {"123": "Test St"}),  # String only
         ("postcode", "123@#$"),  # Alphanumeric characters, whitespace and hyphens only
         ("postcode", 123456),  # String only
+        ("postcode", ["123", "456"]),  # String only
+        ("postcode", {"123": "456"}),  # String only
     ],
 )
-def test_model_valid_char(
+def test_address_model_valid_char(
     field: AddressFields, value: str | int, address_instance: Address
 ) -> None:
     """Test that invalid character/type is enforced by model."""
@@ -117,7 +130,7 @@ def test_model_valid_char(
 # ==================================================================================================
 
 
-def test_schema_load(address_json: dict[str, str]) -> None:
+def test_address_schema_load(address_json: dict[str, str]) -> None:
     """
     Test conversion of json data into python dict using schema.
     'load_instance=False' is set in schema, so data will not be deserialized.
@@ -127,7 +140,7 @@ def test_schema_load(address_json: dict[str, str]) -> None:
     assert data["country_code"] == "US"  # Check expected data in field
 
 
-def test_schema_dump(address_instance: Address) -> None:
+def test_address_schema_dump(address_instance: Address) -> None:
     """Test serialization of python object into json data using schema."""
 
     data = address_schema.dump(address_instance)  # Serialize object into dictionary
@@ -140,7 +153,7 @@ def test_schema_dump(address_instance: Address) -> None:
 REQUIRED_KEYS = ["country_code", "state_code", "street", "postcode"]
 
 
-def test_missing_schema_key(address_json: dict[str, str]) -> None:
+def test_address_missing_schema_key(address_json: dict[str, str]) -> None:
     """Test deserialization while missing one key: value pair per iteration."""
 
     for key in REQUIRED_KEYS:  # Iterates once per key
@@ -157,15 +170,19 @@ def test_missing_schema_key(address_json: dict[str, str]) -> None:
     [
         ("country_code", None),
         ("country_code", ""),
+        ("country_code", "  "),  # Whitespace should be stripped
         ("state_code", None),
         ("state_code", ""),
+        ("state_code", "   "),  # Whitespace should be stripped
         ("street", None),
         ("street", ""),
+        ("street", "    "),  # Whitespace should be stripped
         ("postcode", None),
         ("postcode", ""),
+        ("postcode", "    "),  # Whitespace should be stripped
     ],
 )
-def test_schema_required_fields(
+def test_address_schema_required_fields(
     address_json: dict[str, str], field: AddressFields, value: None | str
 ) -> None:
     """Test schema enforces Null and empty string values for required fields."""
@@ -191,7 +208,7 @@ def test_schema_required_fields(
         ("postcode", ("1" * 11)),  # Exceeds max length (10)
     ],
 )
-def test_schema_column_length(
+def test_address_schema_column_length(
     address_json: dict[str, str], field: AddressFields, value: str
 ) -> None:
     """Test schema enforces min and max column length."""
@@ -217,7 +234,7 @@ def test_schema_column_length(
         ("postcode", 123456),  # String only
     ],
 )
-def test_schema_valid_char(
+def test_address_schema_valid_char(
     address_json: dict[str, str], field: AddressFields, value: str | int
 ) -> None:
     """Test that invalid character/type is enforced by schema."""
