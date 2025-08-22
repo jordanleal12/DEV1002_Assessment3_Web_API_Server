@@ -49,7 +49,7 @@ class Address(db.Model):
 
         # Passes column name, value and model constraints to checks_input function
         value = checks_input(value, "city", required=False, max_len=50)
-        return value.title()  # Convert to titlecase for consistency
+        return value.title() if value else None  # Convert to titlecase for consistency
 
     @validates("street")
     def validate_street(self, key: str, value: Any) -> str | None:

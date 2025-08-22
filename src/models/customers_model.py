@@ -1,6 +1,9 @@
 """Model for creating Customer instances with model level validation."""
 
 # from typing import Any  # Allows use of Any type hint
+from typing import Any
+from email_validator import validate_email, EmailNotValidError
+import phonenumbers
 from sqlalchemy import (
     Connection,
     String,
@@ -10,9 +13,10 @@ from sqlalchemy import (
     select,
     delete,
 )
-from sqlalchemy.orm import Mapper, mapped_column, Mapped, relationship  # , validates
+from sqlalchemy.orm import Mapper, mapped_column, Mapped, relationship, validates
 from extensions import db  # Allows use of SQLAlchemy in model
 from models import Address
+from utils import checks_input
 
 # from utils import checks_input  # Used with validates decorators to validate input
 
@@ -40,6 +44,75 @@ class Customer(db.Model):
 
     __table_args__ = (UniqueConstraint("email", "name_id"),)
 
+    @validates("email")
+    def validates_email(self, key: str, value: Any) -> str | None:
+        """
+        Validates email exists, is string and correct length using checks_input.
+        Uses validate_email python library to check valid email address
+        """
+
+        # Passes column name, value and model constraints to checks_input function
+        value = checks_input(value, "email", str, min_len=3, max_len=254)
+        try:
+            # test_environment becomes check_deliverability=True on deployment to check valid domain
+            # Validates email using email_validator library
+            email_info = validate_email(value, test_environment=True)
+            return email_info.normalized  # Returns normalized version of address
+        except EmailNotValidError as e:
+            raise ValueError(f"Invalid email: {e}") from e
+
+    @validates("phone")
+    def validate_phone(self, key: str, value: Any) -> str | None:
+        """Validates phone has correct formatting, expecting E.164 formatted number"""
+
+        # Passes column name, value and model constraints to checks_input function
+        value = checks_input(value, "phone", required=False, min_len=7, max_len=20)
+
+        if value:  # Verify number using phonenumbers library
+            try:
+                number = phonenumbers.parse(value, None)  # E.164 doesn't require region
+
+            except phonenumbers.NumberParseException as e:  # Error if can't be parsed
+                raise ValueError(f"Invalid phone number: {e}") from e
+
+            if not phonenumbers.is_possible_number(number):  # Checks correct format
+                raise ValueError("Invalid number format: Ensure E.164 formatting")
+
+            if not phonenumbers.is_valid_number(number):  # Checks number in use
+                raise ValueError("Number not in use: Valid format but not in use")
+
+            return phonenumbers.format_number(
+                number,
+                phonenumbers.PhoneNumberFormat.E164,  # Ensures number is saved to database as E.164
+            )
+        return value  # Return None if value is None
+
+    @validates("name_id")
+    def validate_name_id(self, key: str, value: Any) -> int | None:
+        """
+        Validates name_id is a positive integer. no validation of uniqueness or existence
+        as that logic occurs in routes/business logic validation
+        """
+
+        # Passes column name, value and model constraints to checks_input function
+        value = checks_input(value, "name_id", data_type=int)
+        if value is not None and value < 1:
+            raise ValueError("name_id must be a positive integer")
+        return value
+
+    @validates("address_id")
+    def validate_address_id(self, key: str, value: Any) -> int | None:
+        """
+        Validates address_id is a positive integer. no validation of uniqueness or existence
+        as that logic occurs in routes/business logic validation. Nullable allowed.
+        """
+
+        # Passes column name, value and model constraints to checks_input function
+        value = checks_input(value, "address_id", required=False, data_type=int)
+        if value is not None and value < 1:
+            raise ValueError("name_id must be a positive integer")
+        return value
+
     def __repr__(self) -> str | None:
         """String representation of Customer instances useful for debugging."""
 
@@ -50,20 +123,22 @@ class Customer(db.Model):
 # Decorator function listens for customer delete, deletes associated address if no other customers
 @event.listens_for(Customer, "after_delete")
 def delete_orphaned_address(
-    orm_mapper: Mapper, db_conn: Connection, deleted_cust: Customer
+    orm_mapper: Mapper, db_conn: Connection, deleted_customer: Customer
 ) -> None:
     """
     Triggers on the deletion of a customer instance. Checks for associated address instance,
     and if that address instance has no more remaining associated customers, deletes it.
     """
 
-    if deleted_cust.address_id:  # Skips if customer has no associated address
+    if deleted_customer.address_id:  # Skips if customer has no associated address
         # Count how many customers associated with address_id
-        stmt = select(1).where(Customer.address_id == deleted_cust.address_id).limit(1)
+        stmt = (
+            select(1).where(Customer.address_id == deleted_customer.address_id).limit(1)
+        )
         exists = db_conn.scalar(stmt)
         # Run the count query using the DB connection (gets a number like 0 or 1+).
         if not exists:  # If no Customers left using this address...
             # Build and run a delete: "Delete Address where id matches the old address_id".
             db_conn.execute(
-                delete(Address).where(Address.id == deleted_cust.address_id)
+                delete(Address).where(Address.id == deleted_customer.address_id)
             )
