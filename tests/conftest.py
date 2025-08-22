@@ -141,10 +141,10 @@ def customer_instance(
     """Create instance of address as a fixture that can be passed to tests."""
 
     customer = Customer(
-        name_id=name_instance.id,
         email="johnsmith@email.com",
         phone="+61412345678",
         address_id=address_instance.id,
+        name_id=name_instance.id,
     )
     db_session.add(customer)
     db_session.commit()
@@ -169,16 +169,18 @@ def customer2_instance(
 
 
 @pytest.fixture
-def customer_json() -> dict[str, str]:
+def customer_json(
+    db_session: scoped_session[Session], address_instance: Address
+) -> dict[str, str]:
     """Create dictionary for address that can be passed to tests."""
 
     customer_dict = {  # Pre-filled address dictionary
-        "name_id": 1,
         "email": "johnsmith@email.com",
         "phone": "+61412345678",
-        "address_id": 1,
+        "address_id": address_instance.id,
+        "name": {"first_name": "John", "last_name": "Smith"},
     }
     return customer_dict
 
 
-CustomerFields = Literal["name_id", "email", "phone", "address_id"]
+CustomerFields = Literal["name", "email", "phone", "address_id"]

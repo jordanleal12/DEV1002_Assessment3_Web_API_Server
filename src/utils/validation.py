@@ -1,7 +1,5 @@
 """Validation functions to keep code DRY while validating data"""
 
-from typing import Optional  # Used for type hints 'optional' tag
-
 
 def checks_input(
     value: str | None,
@@ -17,7 +15,8 @@ def checks_input(
     returning a ValueError on invalid input.
     """
 
-    if not value:  # Return None if no value and not required, or ValueError if required
+    # Return None if no value and not required, or ValueError if required
+    if value is None:
         if required:
             raise ValueError(f"{column_name} is required")
         return None
