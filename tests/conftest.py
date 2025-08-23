@@ -16,7 +16,7 @@ sys.path.insert(  # Allows imports from src folder
 # Below absolute path declaration so imports happen using new path
 from main import create_app  # Used to setup app instance with test configuration
 from extensions import db  # To link SQLAlchemy
-from models import Address, Customer, Name  # Used for pre-filled instance fixture
+from models import Address, Customer, Name, Author
 
 
 @pytest.fixture(scope="function")  # scope='function' ensures fixture is created once
@@ -93,7 +93,7 @@ AddressFields = Literal["country_code", "state_code", "city", "street", "postcod
 
 @pytest.fixture
 def name_instance(db_session: scoped_session[Session]) -> Name:
-    """Create instance of address as a fixture that can be passed to tests."""
+    """Create instance of name as a fixture that can be passed to tests."""
 
     name = Name(  # Pre-filled address instance
         first_name="John",
@@ -106,7 +106,7 @@ def name_instance(db_session: scoped_session[Session]) -> Name:
 
 @pytest.fixture
 def name2_instance(db_session: scoped_session[Session]) -> Name:
-    """Create instance of address as a fixture that can be passed to tests."""
+    """Create instance of name as a fixture that can be passed to tests."""
 
     name2 = Name(  # Pre-filled address instance
         first_name="Jack",
@@ -119,7 +119,7 @@ def name2_instance(db_session: scoped_session[Session]) -> Name:
 
 @pytest.fixture
 def name_json() -> dict[str, str]:
-    """Create dictionary for address that can be passed to tests."""
+    """Create dictionary for name that can be passed to tests."""
 
     name_dict = {  # Pre-filled address dictionary
         "first_name": "John",
@@ -138,7 +138,7 @@ NameFields = Literal["first_name", "last_name"]
 def customer_instance(
     db_session: scoped_session[Session], address_instance: Address, name_instance: Name
 ) -> Customer:
-    """Create instance of address as a fixture that can be passed to tests."""
+    """Create instance of customer as a fixture that can be passed to tests."""
 
     customer = Customer(
         email="johnsmith@email.com",
@@ -155,7 +155,7 @@ def customer_instance(
 def customer2_instance(
     db_session: scoped_session[Session], address_instance: Address, name2_instance: Name
 ) -> Customer:
-    """Create instance of address as a fixture that can be passed to tests."""
+    """Create instance of customer as a fixture that can be passed to tests."""
 
     customer2 = Customer(
         name_id=name2_instance.id,
@@ -172,7 +172,7 @@ def customer2_instance(
 def customer_json(
     db_session: scoped_session[Session], address_instance: Address
 ) -> dict[str, str]:
-    """Create dictionary for address that can be passed to tests."""
+    """Create dictionary for customer that can be passed to tests."""
 
     customer_dict = {  # Pre-filled address dictionary
         "email": "johnsmith@email.com",
@@ -184,3 +184,41 @@ def customer_json(
 
 
 CustomerFields = Literal["name", "email", "phone", "address_id"]
+
+# Pytest Author fixtures to pass pre-filled author instance or dictionary to tests
+# ==================================================================================================
+
+
+@pytest.fixture
+def author_instance(db_session: scoped_session[Session], name_instance: Name) -> Author:
+    """Create instance of author as a fixture that can be passed to tests."""
+
+    author = Author(name_id=name_instance.id)
+    db_session.add(author)
+    db_session.commit()
+    return author
+
+
+@pytest.fixture
+def author2_instance(
+    db_session: scoped_session[Session], name2_instance: Name
+) -> Author:
+    """Create instance of author as a fixture that can be passed to tests."""
+
+    author2 = Author(name_id=name2_instance.id)
+    db_session.add(author2)
+    db_session.commit()
+    return author2
+
+
+@pytest.fixture
+def author_json() -> dict[str, str]:
+    """Create dictionary for author that can be passed to tests."""
+
+    author_dict = {  # Pre-filled author dictionary
+        "name": {"first_name": "John", "last_name": "Smith"},
+    }
+    return author_dict
+
+
+AuthorFields = Literal["name"]
