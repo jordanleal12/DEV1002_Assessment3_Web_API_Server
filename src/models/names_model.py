@@ -20,6 +20,9 @@ class Name(db.Model):
     customer: Mapped["Customer"] = relationship(
         back_populates="name",  # Links to name in customer model
     )
+    author: Mapped["Author"] = relationship(
+        back_populates="name",  # Links to name in customer model
+    )
 
     @validates("first_name")
     def validate_first_name(self, key: str, value: Any) -> str | None:
