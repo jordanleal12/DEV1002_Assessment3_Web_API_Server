@@ -1,7 +1,6 @@
 """Test cases for Author model, schema, and CRUD operations.
 Using TDD, we will implement the tests first and then the corresponding code."""
 
-from flask.testing import FlaskClient  # Used for type hints
 from sqlalchemy import insert
 from sqlalchemy.exc import IntegrityError  # Raised when validation fails on schema
 from sqlalchemy.orm import scoped_session  # Used for type hints
@@ -9,7 +8,7 @@ from conftest import AuthorFields  # Used for type hints
 from flask_sqlalchemy.session import Session  # Used for type hints
 import pytest  # Required for @parametrize decorator
 from marshmallow import ValidationError  # Expected schema validation error
-from models import Author, Name, Address  # Used for model validation
+from models import Author, Name  # Used for model validation
 from schemas import author_schema  # Used for schema tests
 
 # Test model level validation
