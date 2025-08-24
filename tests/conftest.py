@@ -16,7 +16,7 @@ sys.path.insert(  # Allows imports from src folder
 # Below absolute path declaration so imports happen using new path
 from main import create_app  # Used to setup app instance with test configuration
 from extensions import db  # To link SQLAlchemy
-from models import Address, Customer, Name, Author
+from models import Address, BookAuthor, Customer, Name, Author, Book
 
 
 @pytest.fixture(scope="function")  # scope='function' ensures fixture is created once
@@ -109,8 +109,8 @@ def name2_instance(db_session: scoped_session[Session]) -> Name:
     """Create instance of name as a fixture that can be passed to tests."""
 
     name2 = Name(  # Pre-filled address instance
-        first_name="Jack",
-        last_name="Sparrow",
+        first_name="Patrick",
+        last_name="Rothfus",
     )
     db_session.add(name2)
     db_session.commit()
@@ -159,7 +159,7 @@ def customer2_instance(
 
     customer2 = Customer(
         name_id=name2_instance.id,
-        email="jacksparrow@email.com",
+        email="patrickrothfus@email.com",
         phone="+61487654321",
         address_id=address_instance.id,
     )
@@ -222,3 +222,108 @@ def author_json() -> dict[str, str]:
 
 
 AuthorFields = Literal["name"]
+
+
+# Pytest Book fixtures to pass pre-filled book instance or dictionary to tests
+# ==================================================================================================
+
+
+@pytest.fixture
+def book_instance(
+    db_session: scoped_session[Session], author2_instance: Author
+) -> Book:
+    """Create instance of book as a fixture that can be passed to tests."""
+
+    book = Book(
+        isbn="9780756404079",
+        title="The Name Of The Wind",
+        series="The Kingkiller Chronicles",
+        publication_year=2007,
+        discontinued=False,
+        price=24.99,
+        quantity=23,
+    )
+    db_session.add(book)
+    db_session.flush()  # Flush to commit book id
+    # Link author to book through book_authors
+    book_author = BookAuthor(book_id=book.id, author_id=author2_instance.id)
+
+    db_session.add(book_author)
+    db_session.commit()
+    return book
+
+
+@pytest.fixture
+def book2_instance(db_session: scoped_session[Session]) -> Book:
+    """Create instance of book as a fixture that can be passed to tests."""
+
+    book2 = Book(
+        isbn="9780060853976",
+        title="Good Omens",
+        series="The Nice and Accurate Prophecies of Agnes Nutter, Witch",
+        publication_year=1990,
+        discontinued=False,
+        price=19.99,
+        quantity=18,
+    )
+    db_session.add(book2)
+    db_session.flush()
+
+    name = Name(first_name="Terry", last_name="Pratchett")
+    name2 = Name(first_name="Neil", last_name="Gaiman")
+    db_session.add_all([name, name2])
+    db_session.flush()
+
+    author = Author(name_id=name.id)
+    author2 = Author(name_id=name2.id)
+    db_session.add_all([author, author2])
+    db_session.flush()
+
+    book_author = BookAuthor(book_id=book2.id, author_id=author.id)
+    book_author2 = BookAuthor(book_id=book2.id, author_id=author2.id)
+    db_session.add_all([book_author, book_author2])
+
+    db_session.commit()
+    return book2
+
+
+@pytest.fixture
+def book_json(db_session: scoped_session[Session]) -> dict[str, str]:
+    """Create dictionary for book that can be passed to tests."""
+
+    book_dict = {
+        "isbn": "9780756404079",
+        "title": "The Name Of The Wind",
+        "series": "The Kingkiller Chronicles",
+        "publication_year": 2007,
+        "discontinued": False,
+        "price": 24.99,
+        "quantity": 23,
+        "authors": [{"name": {"first_name": "Patrick", "last_name": "Rothfuss"}}],
+    }
+    return book_dict
+
+
+@pytest.fixture
+def book_json2(db_session: scoped_session[Session]) -> dict[str, str]:
+    """Create dictionary for book that can be passed to tests."""
+
+    book_dict = {  # Pre-filled address dictionary
+        "isbn": "9780060853976",
+        "title": "Good Omens",
+        "series": "The Nice and Accurate Prophecies of Agnes Nutter, Witch",
+        "publication_year": 1990,
+        "discontinued": False,
+        "price": 19.99,
+        "quantity": 18,
+        "authors": [
+            {"name": {"first_name": "Terry", "last_name": "Pratchet"}},
+            {"name": {"first_name": "Neil", "last_name": "Gaiman"}},
+        ],
+    }
+    return book_dict
+
+
+BookFields = Literal[
+    "isbn", "title", "series", "publication_year", "discontinued", "price", "quantity"
+]
