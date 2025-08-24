@@ -1,6 +1,6 @@
 """Model for creating Author instances with model level validation."""
 
-from typing import Any  # Allows use of Any type hint
+from typing import Any, List  # Allows use of Any type hint
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import mapped_column, Mapped, relationship, validates
 from extensions import db  # Allows use of SQLAlchemy in model
@@ -17,13 +17,26 @@ class Author(db.Model):
     name_id: Mapped[int] = mapped_column(
         ForeignKey("names.id", ondelete="RESTRICT"), unique=True
     )  # on_delete=RESTRICT will prevent deletion of name instance if associated to author
+
     name: Mapped["Name"] = relationship(
         back_populates="author",  # links relationship with names
         cascade="all, delete-orphan",  # Deletes name when author is deleted
         single_parent=True,  # Required for one to one relationship
     )
+    # Define relationship with book_authors, deleting book_author instance if deleted or set null
+    book_authors: Mapped[List["BookAuthor"]] = relationship(
+        back_populates="author", cascade="all, delete-orphan"
+    )
+    # Define relationship with books as secondary relationship through book_authors
+    books: Mapped[List["Book"]] = relationship(
+        secondary="book_authors",
+        back_populates="authors",
+        overlaps="book_authors",  # Silences warning about overlapping foreign key columns
+    )
 
     __table_args__ = (UniqueConstraint("name_id"),)
+    __mapper_args__ = {"confirm_deleted_rows": False}  # Silences expected delete
+    # warning as expects cascade delete but we manually delete with listener event in book_authors
 
     @validates("name_id")
     def validate_name_id(self, key: str, value: Any) -> int | None:

@@ -26,7 +26,7 @@ class AuthorSchema(SQLAlchemyAutoSchema):
         # Relationships to be defined later when Author model is created
         exclude = ["name_id"]
 
-    name = fields.Nested("NameSchema", required=True)
+    name = fields.Nested("NameSchema", required=True)  # Nested name attribute
 
     @pre_load  # Calls below method to process data before being validated/deserialized by schema
     def strip_data(self, data: Any, **kwargs) -> Any:
