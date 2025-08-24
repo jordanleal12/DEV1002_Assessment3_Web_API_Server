@@ -9,7 +9,7 @@ from conftest import BookFields  # Used for type hints
 from flask_sqlalchemy.session import Session  # Used for type hints
 import pytest  # Required for @parametrize decorator
 from marshmallow import ValidationError  # Expected schema validation error
-from models import Book, BookAuthor, Customer, Author  # Used for model validation
+from models import Book, BookAuthor, Author  # Used for model validation
 from schemas import book_schema  # Used for schema tests
 
 
