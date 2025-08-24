@@ -2,5 +2,6 @@
 
 from .addresses_controllers import addresses
 from .customers_controllers import customers
+from .books_controllers import books
 
-controller_blueprints = [addresses, customers]
+controller_blueprints = [addresses, customers, books]
