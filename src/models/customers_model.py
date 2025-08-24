@@ -131,14 +131,12 @@ def delete_orphaned_address(
     """
 
     if deleted_customer.address_id:  # Skips if customer has no associated address
-        # Count how many customers associated with address_id
-        stmt = (
+        stmt = (  # Select max 1 customer associated with address_id
             select(1).where(Customer.address_id == deleted_customer.address_id).limit(1)
         )
-        exists = db_conn.scalar(stmt)
-        # Run the count query using the DB connection (gets a number like 0 or 1+).
-        if not exists:  # If no Customers left using this address...
-            # Build and run a delete: "Delete Address where id matches the old address_id".
-            db_conn.execute(
+        exists = db_conn.scalar(stmt)  # Will be truthy if stmt = 1 else false
+
+        if not exists:  # If no customers associated to address
+            db_conn.execute(  # Create SQL statement to delete address by id
                 delete(Address).where(Address.id == deleted_customer.address_id)
             )

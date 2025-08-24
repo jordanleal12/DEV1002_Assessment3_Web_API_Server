@@ -23,7 +23,6 @@ class AddressSchema(SQLAlchemyAutoSchema):
         load_instance = False  # Prevent automatic deserialization, which can trigger
         # Model level validation and skip schema validation
         unknown = EXCLUDE  # Ignores extra or unknown fields in requests
-        # Relationships to be defined later when Customer model is created
 
     @pre_load  # Calls below method to process data before being validated/deserialized by schema
     def strip_data(self, data: Any, **kwargs) -> Any:

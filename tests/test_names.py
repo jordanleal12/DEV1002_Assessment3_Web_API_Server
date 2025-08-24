@@ -256,7 +256,7 @@ def test_direct_name_delete_fails(
 ) -> None:
     """Deleting a Name directly should be blocked while a Customer references it."""
 
-    with pytest.raises(IntegrityError):
+    with pytest.raises(ValueError):
         db_session.delete(name_instance)  # Should raise error
         db_session.commit()
 
@@ -274,7 +274,7 @@ def test_delete_name_fk_fails(
     raises integrity error and doesn't delete name
     """
 
-    with pytest.raises(IntegrityError):
+    with pytest.raises(ValueError):
         customer_instance.name_id = None  # Should raise error
         db_session.commit()
 

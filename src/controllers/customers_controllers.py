@@ -8,7 +8,7 @@ from flask import (
 from werkzeug.exceptions import abort  # Used to raise HTTP exceptions
 from extensions import db  # SQLAlchemy instance
 from models import Customer, Name  # Customer model
-from schemas import customer_schema, customers_schema, name_schema  # Customer schemas
+from schemas import customer_schema, customers_schema  # Customer schemas
 from utils.error_handling import handle_errors  # Error handling decorator function
 
 # Allows importing routes to main via blueprints
@@ -89,7 +89,7 @@ def update_customer(customer_id):
 
     json_data = request.get_json(silent=True)  # Prevents error raising on invalid json
     if not json_data:
-        abort(404, description="Json data is missing or invalid")
+        abort(400, description="Json data is missing or invalid")
 
     true_if_patch = request.method == "PATCH"  # True if PATCH else False
 
