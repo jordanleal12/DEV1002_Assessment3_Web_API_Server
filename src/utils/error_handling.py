@@ -40,6 +40,16 @@ def handle_errors(func):
 
         except IntegrityError as e:  # Database constraint errors like NOT NULL
             db.session.rollback()  # Rollback required as IntegrityError occurs after adding commit
+
+            if not hasattr(e.orig, "pgcode"):  # Handle SQLite errors in testing
+                error_msg = str(e.orig)  # Get the underlying database error message
+                return (
+                    jsonify(
+                        {"error": "Database Integrity Error", "message": error_msg}
+                    ),
+                    400,
+                )
+
             if e.orig.pgcode == errorcodes.NOT_NULL_VIOLATION:  # NOT NULL violations
                 return (
                     jsonify(
