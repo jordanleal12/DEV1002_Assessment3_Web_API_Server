@@ -18,7 +18,10 @@ books = Blueprint("books", __name__, url_prefix="/books")
 @books.route("", methods=["POST"])
 @handle_errors  # Adds function as decorator to run error handling
 def create_book():
-    """Create a new book and associated book_authors and authors instance from a POST request."""
+    """
+    Create a new book instance, and associated book_authors instance(s), checking for existing
+    authors by matching names, and creating new authors if no existing instance, from POST request.
+    """
 
     data = request.get_json(silent=True)  # Prevents error raising on invalid json
     if not data:  # Validate that request contains data
@@ -31,16 +34,33 @@ def create_book():
     db.session.add(book)
     db.session.flush()
 
-    for author_dict in authors_data:
-        name_data = author_dict.pop("name")
-        name = Name(**name_data)  # Validate/deserialize with Name model
-        db.session.add(name)
-        db.session.flush()
+    for author_dict in authors_data:  # Iterate over attached list of authors
+        name_data = author_dict.pop("name")  # Separate nested name data
+        name_author_query = (  # Select joined table of Name and Author where name matches
+            db.select(Name, Author)
+            .join(Author, Author.name_id == Name.id)  # Joins Name and Author tables
+            .where(  # Filters by matching first name and matching last name if last name exists
+                (Name.first_name == name_data.get("first_name"))
+                # .get returns None if no last name as some authors have first name only
+                & (Name.last_name == name_data.get("last_name"))
+            )
+        )
+        # Returns first match as tuple containing name instance (0) and author instance (1) or None.
+        # Should be no duplicate authors due to above check
+        existing_author = db.session.execute(name_author_query).first()
 
-        author = Author(**author_dict, name_id=name.id)
-        db.session.add(author)
-        db.session.flush()
+        if existing_author:  # Assign author instance from tuple if match found
+            author = existing_author[1]  # The author instance
 
+        else:  # Create new name and author if no matching author found
+            name = Name(**name_data)  # Validate/deserialize with Name model
+            db.session.add(name)
+            db.session.flush()
+
+            author = Author(**author_dict, name_id=name.id)
+            db.session.add(author)
+            db.session.flush()
+        # Create book_author instance using new or existing author instance per author
         book_author = BookAuthor(book_id=book.id, author_id=author.id)
         db.session.add(book_author)
 
