@@ -1,7 +1,7 @@
 """Model for creating Customer instances with model level validation."""
 
 # from typing import Any  # Allows use of Any type hint
-from typing import Any
+from typing import Any, List
 from email_validator import validate_email, EmailNotValidError
 import phonenumbers
 from sqlalchemy import (
@@ -41,6 +41,10 @@ class Customer(db.Model):
         single_parent=True,  # Required for one to one relationship
     )
     address: Mapped["Address"] = relationship(back_populates="customers")
+    orders: Mapped[List["Order"]] = relationship(  # List as many to one
+        back_populates="customer",  # Links to customer in orders model
+        passive_deletes=True,  # Tells SQLAlchemy not to interfere with db for ON DELETE actions
+    )
 
     __table_args__ = (UniqueConstraint("email", "name_id"),)
 

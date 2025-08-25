@@ -23,19 +23,27 @@ class Book(db.Model):
     price: Mapped[float] = mapped_column(Numeric(5, 2), CheckConstraint("price >= 0"))
     quantity: Mapped[int] = mapped_column(Integer, CheckConstraint("quantity >= 0"))
 
-    # Define relationship with book_authors, deleting book_author instance if deleted or set null
+    # Define many to one relationship with book_authors, deleting book_author if deleted or set null
     book_authors: Mapped[List["BookAuthor"]] = relationship(
         back_populates="book", cascade="all, delete-orphan"
     )
-    # Define relationship with authors as secondary relationship through book_authors
+    # Define many to many relationship with authors as secondary relationship through book_authors
     authors: Mapped[List["Author"]] = relationship(
         secondary="book_authors",
         back_populates="books",
         overlaps="book_authors",  # Silences warning about overlapping foreign key columns
     )
+    # Define many to one relationship with order_items
+    order_items: Mapped[List["OrderItem"]] = relationship(back_populates="book")
+    # Define many to many relationship with orders as secondary relationship through order_items
+    orders: Mapped[List["Order"]] = relationship(
+        secondary="order_items",
+        back_populates="books",
+        overlaps="order_items",  # Silences warning about overlapping foreign key columns
+    )
 
     __mapper_args__ = {"confirm_deleted_rows": False}  # Silences expected delete
-    # warning as expects cascade delete but we manually delete with listener event in book_authors
+    # warning as expects cascade delete but we manually delete
 
     @validates("isbn")
     def validate_isbn(self, key: str, value: Any) -> str | None:

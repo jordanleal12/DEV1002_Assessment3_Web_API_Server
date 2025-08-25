@@ -1,9 +1,11 @@
 """Model for creating BookAuthor instances with model level validation."""
 
+from typing import Any
 from sqlalchemy import Connection, ForeignKey, UniqueConstraint, delete, select, event
-from sqlalchemy.orm import Mapper, mapped_column, Mapped, relationship
+from sqlalchemy.orm import Mapper, mapped_column, Mapped, relationship, validates
 from extensions import db  # Allows use of SQLAlchemy in model
 from models import Author, Book
+from utils import checks_input
 
 
 class BookAuthor(db.Model):
@@ -33,6 +35,32 @@ class BookAuthor(db.Model):
     __table_args__ = (UniqueConstraint("book_id", "author_id"),)
     __mapper_args__ = {"confirm_deleted_rows": False}  # Silences expected delete
     # warning as expects cascade delete but we manually delete in business logic
+
+    @validates("book_id")
+    def validate_book_id(self, key: str, value: Any) -> int | None:
+        """
+        Validates book_id is a positive integer. no validation of uniqueness or existence
+        as that logic occurs in routes/business logic validation
+        """
+
+        # Passes column name, value and model constraints to checks_input function
+        value = checks_input(value, "book_id", data_type=int)
+        if value is not None and value < 1:
+            raise ValueError("book_id must be a positive integer")
+        return value
+
+    @validates("author_id")
+    def validate_author_id(self, key: str, value: Any) -> int | None:
+        """
+        Validates author_id is a positive integer. no validation of uniqueness or existence
+        as that logic occurs in routes/business logic validation
+        """
+
+        # Passes column name, value and model constraints to checks_input function
+        value = checks_input(value, "author_id", data_type=int)
+        if value is not None and value < 1:
+            raise ValueError("author_id must be a positive integer")
+        return value
 
 
 # Decorator function listens for customer delete, deletes associated author if no other books
