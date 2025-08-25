@@ -9,6 +9,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine import Engine  # Used to listen for Engine connection
 from extensions import db  # SQLAlchemy Instance
+from cli_commands import registerable_cli_commands
 from controllers import controller_blueprints  # Used to register blueprint controllers
 
 
@@ -18,6 +19,7 @@ def create_app(
     """Create and configure Flask application instance using configuration passed by config_class"""
 
     app = Flask(__name__)  # Create Flask app instance
+    app.json.sort_keys = False  # Preserve schema field order in json responses
     app.config.from_object(config_class)  # Loads the relevant config from config.py
     # after being passed as a string as an argument in create_app()
     db.init_app(app)  # Connects SQLAlchemy db object to Flask app object, mapping ORM,
@@ -36,6 +38,9 @@ def create_app(
             cursor = dbapi_connection.cursor()  # Create cursor object for SQL commands
             cursor.execute("PRAGMA foreign_keys=ON")  # Executes command per connection
             cursor.close()  # Close cursor to free resources
+
+    for command in registerable_cli_commands:  # Iterate CLI commands
+        app.cli.add_command(command)  # Register each CLI command
 
     for controller in controller_blueprints:
         app.register_blueprint(controller)  # Register each blueprint controller
