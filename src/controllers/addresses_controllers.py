@@ -98,7 +98,7 @@ def update_address(address_id):
 
     db.session.commit()
 
-    return jsonify(address_schema.dump(updated_address)), 200
+    return jsonify(address_schema.dump(address)), 200
 
 
 @addresses.route("/<int:address_id>", methods=["DELETE"])
