@@ -29,7 +29,6 @@ class CustomerSchema(SQLAlchemyAutoSchema):
         load_instance = False  # Prevent automatic deserialization, which can trigger
         # Model level validation and skip schema validation
         unknown = EXCLUDE  # Ignores extra or unknown fields in requests
-        # Relationships to be defined later when Customer model is created
         exclude = ["name_id"]
 
     name = fields.Nested("NameSchema", required=True)
