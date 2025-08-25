@@ -6,3 +6,5 @@ from .names_model import Name
 from .authors_model import Author
 from .books_model import Book
 from .book_authors_model import BookAuthor
+from .orders_model import Order
+from .order_items_model import OrderItem
