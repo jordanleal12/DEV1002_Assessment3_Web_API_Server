@@ -9,7 +9,10 @@ from werkzeug.exceptions import abort  # Used to raise HTTP exceptions
 from extensions import db  # SQLAlchemy instance
 from models import Book, Name, Author, BookAuthor  # Table models
 from schemas import book_schema, books_schema  # Book schemas
-from utils.error_handling import handle_errors  # Error handling decorator function
+from utils import (
+    handle_errors,
+    fetch_or_create_author,
+)  # Error handling decorator function
 
 # Allows importing routes to main via blueprints
 books = Blueprint("books", __name__, url_prefix="/books")
@@ -35,31 +38,7 @@ def create_book():
     db.session.flush()
 
     for author_dict in authors_data:  # Iterate over attached list of authors
-        name_data = author_dict.pop("name")  # Separate nested name data
-        name_author_query = (  # Select joined table of Name and Author where name matches
-            db.select(Name, Author)
-            .join(Author, Author.name_id == Name.id)  # Joins Name and Author tables
-            .where(  # Filters by matching first name and matching last name if last name exists
-                (Name.first_name == name_data.get("first_name"))
-                # .get returns None if no last name as some authors have first name only
-                & (Name.last_name == name_data.get("last_name"))
-            )
-        )
-        # Returns first match as tuple containing name instance (0) and author instance (1) or None.
-        # Should be no duplicate authors due to above check
-        existing_author = db.session.execute(name_author_query).first()
-
-        if existing_author:  # Assign author instance from tuple if match found
-            author = existing_author[1]  # The author instance
-
-        else:  # Create new name and author if no matching author found
-            name = Name(**name_data)  # Validate/deserialize with Name model
-            db.session.add(name)
-            db.session.flush()
-
-            author = Author(**author_dict, name_id=name.id)
-            db.session.add(author)
-            db.session.flush()
+        author = fetch_or_create_author(author_dict)  # Return existing or new author
         # Create book_author instance using new or existing author instance per author
         book_author = BookAuthor(book_id=book.id, author_id=author.id)
         db.session.add(book_author)
@@ -139,16 +118,14 @@ def update_book(book_id):
                 for field, value in name_data.items():
                     setattr(author.name, field, value)
             else:  # If index not less than author list new author is created
-                name = Name(**name_data)  # Create name instance first for id
-                db.session.add(name)
-                db.session.flush()  # Flush to get id
-
-                author = Author(name_id=name.id)  # Create new author instance
-                db.session.add(author)
-                db.session.flush()  # Flush to get id
-                # Create new book_author instance with book and author id
-                book_author = BookAuthor(book_id=book.id, author_id=author.id)
-                db.session.add(book_author)
+                # Function returns existing author if name matches else creates new author instance
+                author = fetch_or_create_author(author_dict)
+                book_author = db.session.get(  # If existing author, should be existing book_author
+                    BookAuthor, {"book_id": book.id, "author_id": author.id}
+                )
+                if not book_author:  # Only create new book_author if new author
+                    book_author = BookAuthor(book_id=book.id, author_id=author.id)
+                    db.session.add(book_author)
 
     # Update instance attributes and validate with model before commit
     for field, value in updated_book.items():
