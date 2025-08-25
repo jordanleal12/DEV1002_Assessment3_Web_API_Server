@@ -25,9 +25,8 @@ class OrderItemSchema(SQLAlchemyAutoSchema):
         unknown = EXCLUDE  # Ignores extra or unknown fields in requests
         # Decide whether to include book details when serializing order items
         include_relationships = False  # We want only book for nested relationships
-
-    # When nested in orders, include book details
-    book = fields.Nested("BookSchema", dump_only=True)
+        ordered = True  # Serializes fields in order they are defined in schema
+        exclude = ("order_id",)  # Order_items will be nested within order
 
     @pre_load  # Process data before validation
     def strip_data(self, data: Any, **kwargs) -> Any:
@@ -48,6 +47,8 @@ class OrderItemSchema(SQLAlchemyAutoSchema):
         strict=True,  # Reject floats
         error_messages={"required": "quantity is required and must be an integer"},
     )
+    # When nested in orders, include book details
+    book = fields.Nested("BookSchema", only=("id", "title", "price"), dump_only=True)
 
 
 order_item_schema = OrderItemSchema()

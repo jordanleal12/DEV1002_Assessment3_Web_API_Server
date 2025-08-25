@@ -26,8 +26,6 @@ class AuthorSchema(SQLAlchemyAutoSchema):
         # Relationships to be defined later when Author model is created
         exclude = ["name_id"]
 
-    name = fields.Nested("NameSchema", required=True)  # Nested name attribute
-
     @pre_load  # Calls below method to process data before being validated/deserialized by schema
     def strip_data(self, data: Any, **kwargs) -> Any:
         """Iterate over key-value pairs, strip whitespace from value and return"""
@@ -40,6 +38,7 @@ class AuthorSchema(SQLAlchemyAutoSchema):
         return data  # Replace each value with a stripped version if exists
 
     id = auto_field(dump_only=True)  # Lets PK be viewed but not changed from routes
+    name = fields.Nested("NameSchema", required=True)  # Nested name attribute
 
 
 author_schema = AuthorSchema()  # Instance of schema for single author

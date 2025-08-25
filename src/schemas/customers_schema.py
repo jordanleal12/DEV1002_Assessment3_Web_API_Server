@@ -31,8 +31,6 @@ class CustomerSchema(SQLAlchemyAutoSchema):
         unknown = EXCLUDE  # Ignores extra or unknown fields in requests
         exclude = ["name_id"]
 
-    name = fields.Nested("NameSchema", required=True)
-
     @pre_load  # Calls below method to process data before being validated/deserialized by schema
     def strip_data(self, data: Any, **kwargs) -> Any:
         """Iterate over key-value pairs, strip whitespace from value and return"""
@@ -73,6 +71,7 @@ class CustomerSchema(SQLAlchemyAutoSchema):
             Range(min=1, error="address_id must be a positive integer if provided")
         ],  # Validation of existence only for business level logic
     )
+    name = fields.Nested("NameSchema", required=True)
 
 
 customer_schema = CustomerSchema()  # Instance of schema for single customer

@@ -26,8 +26,7 @@ class BookSchema(SQLAlchemyAutoSchema):
         load_instance = False  # Prevent automatic deserialization, which can trigger
         # Model level validation and skip schema validation
         unknown = EXCLUDE  # Ignores extra or unknown fields in requests
-
-    authors = fields.Nested("AuthorSchema", many=True, required=True)  # Nested authors
+        ordered = True  # Serializes fields in order they are defined in schema
 
     @pre_load  # Calls below method to process data before being validated/deserialized by schema
     def strip_data(self, data: Any, **kwargs) -> Any:
@@ -65,6 +64,12 @@ class BookSchema(SQLAlchemyAutoSchema):
         validate=[Length(max=255, error="series cannot exceed 255 characters")],
     )
 
+    title = auto_field(  # Validates title on deserialization
+        required=True,  # Requires field with value
+        validate=[Length(max=255)],
+        error_messages={"required": "title is required"},
+    )
+
     publication_year = auto_field(  # Validates publication_year on deserialization
         required=True,  # Requires field with value
         # Custom function checks between 1000 and current year
@@ -91,6 +96,8 @@ class BookSchema(SQLAlchemyAutoSchema):
         strict=True,  # Reject floats
         error_messages={"required": "quantity is required, 0 if no stock"},
     )
+
+    authors = fields.Nested("AuthorSchema", many=True, required=True)  # Nested authors
 
 
 book_schema = BookSchema()  # Instance of schema for single book

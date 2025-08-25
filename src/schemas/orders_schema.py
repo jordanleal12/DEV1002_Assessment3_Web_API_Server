@@ -23,9 +23,7 @@ class OrderSchema(SQLAlchemyAutoSchema):
         model = Order
         load_instance = False  # Prevent automatic deserialization
         unknown = EXCLUDE  # Ignores extra or unknown fields in requests
-
-    # Include nested order items with book details
-    order_items = fields.Nested("OrderItemSchema", many=True)
+        ordered = True  # Serializes fields in order they are defined in schema
 
     @pre_load  # Process data before validation
     def strip_data(self, data: Any, **kwargs) -> Any:
@@ -54,6 +52,9 @@ class OrderSchema(SQLAlchemyAutoSchema):
         ],
         error_messages={"required": "price is required, and must be a float"},
     )
+
+    # Include nested order items with book details
+    order_items = fields.Nested("OrderItemSchema", many=True)
 
 
 order_schema = OrderSchema()
