@@ -16,7 +16,7 @@ sys.path.insert(  # Allows imports from src folder
 # Below absolute path declaration so imports happen using new path
 from main import create_app  # Used to setup app instance with test configuration
 from extensions import db  # To link SQLAlchemy
-from models import Address, BookAuthor, Customer, Name, Author, Book
+from models import Address, BookAuthor, Customer, Name, Author, Book, Order, OrderItem
 
 
 @pytest.fixture(scope="function")  # scope='function' ensures fixture is created once
@@ -327,3 +327,107 @@ def book_json2(db_session: scoped_session[Session]) -> dict[str, str]:
 BookFields = Literal[
     "isbn", "title", "series", "publication_year", "discontinued", "price", "quantity"
 ]
+
+# Pytest Order fixtures to pass pre-filled order instance or dictionary to tests
+# ==================================================================================================
+
+
+@pytest.fixture
+def order_instance(
+    db_session: scoped_session[Session],
+    customer_instance: Customer,
+    book_instance: Book,
+    book2_instance: Book,
+) -> Order:
+    """Create instance of order as a fixture that can be passed to tests."""
+
+    order = Order(
+        customer_id=customer_instance.id,
+        price_total=1.0,  # Update after creating order_items
+    )
+
+    db_session.add(order)
+    db_session.flush()  # Flush to commit order id
+
+    order_item1 = OrderItem(book_id=book_instance.id, order_id=order.id, quantity=1)
+    order_item2 = OrderItem(book_id=book2_instance.id, order_id=order.id, quantity=2)
+    db_session.add_all([order_item1, order_item2])
+
+    # Calculate correct price total
+    total = float(
+        order_item1.quantity * book_instance.price
+        + order_item2.quantity * book2_instance.price
+    )
+    order.price_total = total  # Update price total to correct value
+
+    db_session.commit()
+    return order
+
+
+@pytest.fixture
+def order2_instance(
+    db_session: scoped_session[Session],
+    customer2_instance: Customer,
+    book_instance: Book,
+) -> Order:
+    """Create instance of order as a fixture that can be passed to tests."""
+
+    order = Order(
+        customer_id=customer2_instance.id,
+        price_total=1.0,  # Update after creating order_items
+    )
+
+    db_session.add(order)
+    db_session.flush()  # Flush to commit order id
+
+    order_item = OrderItem(book_id=book_instance.id, order_id=order.id, quantity=3)
+    db_session.add(order_item)
+
+    # Calculate correct price total
+    total = float(order_item.quantity * book_instance.price)
+
+    order.price_total = total  # Update price total to correct value
+
+    db_session.commit()
+    return order
+
+
+@pytest.fixture
+def order_json(
+    db_session: scoped_session[Session],
+    customer_instance: Customer,
+    book_instance: Book,
+    book2_instance: Book,
+) -> dict[str, str]:
+    """Create dictionary for order that can be passed to tests."""
+
+    order_dict = {
+        "customer_id": customer_instance.id,
+        "order_items": [
+            {"book_id": book_instance.id, "quantity": 1},
+            {"book_id": book2_instance.id, "quantity": 2},
+        ],
+        "price_total": float((1 * book_instance.price) + (2 * book2_instance.price)),
+    }
+    return order_dict
+
+
+@pytest.fixture
+def order_json2(
+    db_session: scoped_session[Session],
+    customer2_instance: Customer,
+    book_instance: Book,
+) -> dict[str, str]:
+    """Create dictionary for order that can be passed to tests."""
+
+    order_dict = {
+        "customer_id": customer2_instance.id,
+        "order_items": [
+            {"book_id": book_instance.id, "quantity": 3},
+        ],
+        "price_total": float(3 * book_instance.price),
+    }
+    return order_dict
+
+
+OrderFields = Literal["customer_id", "order_items", "price_total"]
